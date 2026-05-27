@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}</style>
       </head>
       <body className="min-h-dvh font-sans">
-        <main className="relative z-10 mx-auto max-w-md pb-32 pt-safe">{children}</main>
+        <main className="relative z-10 mx-auto max-w-md pt-safe" style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}>{children}</main>
         <BottomNav />
       </body>
     </html>

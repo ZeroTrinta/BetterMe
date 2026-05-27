@@ -29,6 +29,15 @@ export interface HistoricoCorrida {
   notas?: string;
 }
 
+export interface HistoricoPeso {
+  /** YYYY-MM-DD usado como ID do doc */
+  data: string;
+  peso_kg: number;
+  /** opcional, ex: gordura corporal % */
+  bf_pct?: number;
+  notas?: string;
+}
+
 export interface CompraMercado {
   data: string;
   mes: string; // YYYY-MM

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Check, Dumbbell, Target, Sparkles } from "lucide-react";
+import { Flame, Check, Dumbbell, Target, Sparkles, Route, Zap } from "lucide-react";
 import {
   getDietaDoDia,
   getTreinosIntervalo,
@@ -9,6 +9,8 @@ import {
   todayKey,
   monthKey,
   getComprasMes,
+  getDietaIntervalo,
+  getCorridasIntervalo,
 } from "@/lib/firestore";
 import {
   HistoricoAlimentacao,
@@ -19,27 +21,49 @@ import {
 import { Card } from "@/components/ui/Card";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { formatBRL, cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { StreakBadge } from "@/components/hub/StreakBadge";
+import { calcularStreak, StreakResult } from "@/lib/streak";
+import { formatBRL, cn, formatPace } from "@/lib/utils";
+import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function HomePage() {
   const [dieta, setDieta] = useState<HistoricoAlimentacao | null>(null);
   const [treinoHoje, setTreinoHoje] = useState<string | null>(null);
   const [gastoMes, setGastoMes] = useState(0);
+  const [streak, setStreak] = useState<StreakResult | null>(null);
+  const [kmSemana, setKmSemana] = useState(0);
+  const [ultimoPace, setUltimoPace] = useState<number | null>(null);
+  const [corridasNoMes, setCorridasNoMes] = useState(0);
   const [loading, setLoading] = useState(true);
   const [celebra, setCelebra] = useState(false);
 
   const refresh = async () => {
     const hoje = todayKey();
-    const [d, treinos, compras] = await Promise.all([
+    // Janela de 90 dias é o suficiente pra streak comum
+    const inicio = format(subDays(new Date(), 90), "yyyy-MM-dd");
+    const [d, treinos, compras, dietasHist, corridasHist, treinosHist] = await Promise.all([
       getDietaDoDia(hoje),
       getTreinosIntervalo(hoje, hoje),
       getComprasMes(monthKey()),
+      getDietaIntervalo(inicio, hoje),
+      getCorridasIntervalo(inicio, hoje),
+      getTreinosIntervalo(inicio, hoje),
     ]);
     setDieta(d);
     setTreinoHoje(treinos[0]?.tipo_treino ?? null);
     setGastoMes(compras.reduce((acc, c) => acc + (c.valor_pago || 0), 0));
+    setStreak(calcularStreak(dietasHist, treinosHist, corridasHist, hoje));
+
+    // KPIs de corrida
+    const inicio7 = format(subDays(new Date(), 7), "yyyy-MM-dd");
+    const corridasSemana = corridasHist.filter((c) => c.data >= inicio7);
+    setKmSemana(corridasSemana.reduce((a, c) => a + c.distancia_km, 0));
+    setCorridasNoMes(corridasHist.filter((c) => c.data.startsWith(monthKey())).length);
+    // último pace (mais recente)
+    const ordenadas = [...corridasHist].sort((a, b) => b.data.localeCompare(a.data));
+    setUltimoPace(ordenadas[0]?.ritmo_min_km ?? null);
+
     setLoading(false);
   };
 
@@ -77,6 +101,13 @@ export default function HomePage() {
         serifWord="atleta."
         subtitle={dataLabel.charAt(0).toUpperCase() + dataLabel.slice(1)}
       />
+
+      {/* STREAK */}
+      {streak && (
+        <section className="px-5 pb-4">
+          <StreakBadge streak={streak} />
+        </section>
+      )}
 
       {/* RING PRINCIPAL */}
       <section className="px-5">
@@ -145,7 +176,7 @@ export default function HomePage() {
         })}
       </section>
 
-      {/* STATS ROW */}
+      {/* STATS GRID 2x2 */}
       <section className="mt-4 grid grid-cols-2 gap-3 px-5">
         <Card className="p-4">
           <div className="flex items-start justify-between">
@@ -154,7 +185,7 @@ export default function HomePage() {
               Treino
             </span>
           </div>
-          <p className="mt-3 font-display text-3xl text-ink">
+          <p className="mt-3 font-display text-2xl text-ink">
             {treinoHoje ? `Treino ${treinoHoje}` : "—"}
           </p>
           <p className="text-xs text-ink-dim">
@@ -164,13 +195,45 @@ export default function HomePage() {
 
         <Card className="p-4">
           <div className="flex items-start justify-between">
-            <Target className="h-5 w-5 text-lime" />
+            <Route className="h-5 w-5 text-lime" />
+            <span className="text-[10px] uppercase tracking-wider text-ink-mute">
+              7 dias
+            </span>
+          </div>
+          <p className="mt-3 font-display text-2xl text-ink">
+            {kmSemana.toFixed(1)}
+            <span className="text-sm text-ink-dim"> km</span>
+          </p>
+          <p className="text-xs text-ink-dim">
+            {ultimoPace ? `Último ${formatPace(ultimoPace)}` : "Corra esta semana"}
+          </p>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-start justify-between">
+            <Zap className="h-5 w-5 text-lime" />
             <span className="text-[10px] uppercase tracking-wider text-ink-mute">
               Mês
             </span>
           </div>
-          <p className="mt-3 font-display text-3xl text-ink">{formatBRL(gastoMes)}</p>
-          <p className="text-xs text-ink-dim">Gasto em mercado</p>
+          <p className="mt-3 font-display text-2xl text-ink">
+            {corridasNoMes}
+            <span className="text-sm text-ink-dim"> corridas</span>
+          </p>
+          <p className="text-xs text-ink-dim">
+            {corridasNoMes === 0 ? "Comece a contagem" : "Sessões registradas"}
+          </p>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-start justify-between">
+            <Target className="h-5 w-5 text-lime" />
+            <span className="text-[10px] uppercase tracking-wider text-ink-mute">
+              Mercado
+            </span>
+          </div>
+          <p className="mt-3 font-display text-2xl text-ink">{formatBRL(gastoMes)}</p>
+          <p className="text-xs text-ink-dim">Gasto no mês</p>
         </Card>
       </section>
 

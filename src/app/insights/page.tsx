@@ -21,6 +21,7 @@ import {
   getTreinosIntervalo,
   getTodasCompras,
   getTodasCorridas,
+  getCorridasIntervalo,
   todayKey,
 } from "@/lib/firestore";
 import { REFEICOES_ORDEM, TREINO_LABEL, HistoricoCorrida } from "@/types";
@@ -65,14 +66,16 @@ export default function InsightsPage() {
       setAderenciaSemanal(dias);
       setAderencia(dias.reduce((a, b) => a + b.pct, 0) / 7);
 
-      // DISTRIBUIÇÃO TREINOS 30D
+      // DISTRIBUIÇÃO TREINOS + CORRIDAS 30D
       const treinos30 = await getTreinosIntervalo(inicio30, todayKey());
-      const cont: Record<string, number> = { A: 0, B: 0, C: 0 };
+      const corridas30 = await getCorridasIntervalo(inicio30, todayKey());
+      const cont: Record<string, number> = { A: 0, B: 0, C: 0, R: 0 };
       treinos30.forEach((t) => (cont[t.tipo_treino] = (cont[t.tipo_treino] || 0) + 1));
+      cont.R = corridas30.length;
       setDistrib(
-        (["A", "B", "C"] as const).map((k) => ({
+        (["A", "B", "C", "R"] as const).map((k) => ({
           key: k,
-          name: TREINO_LABEL[k],
+          name: k === "R" ? "Corrida" : TREINO_LABEL[k as "A" | "B" | "C"],
           value: cont[k] || 0,
         }))
       );
@@ -203,7 +206,7 @@ export default function InsightsPage() {
                         key={entry.key}
                         fill={
                           distrib.some((d) => d.value > 0)
-                            ? [LIME, LIME_DIM, "#2E5A8C"][i]
+                            ? [LIME, LIME_DIM, "#2E5A8C", "#5CFFD9"][i]
                             : "rgba(255,255,255,0.06)"
                         }
                       />
@@ -217,7 +220,7 @@ export default function InsightsPage() {
                 <div key={d.key} className="flex items-center gap-2">
                   <span
                     className="h-2.5 w-2.5 rounded-full"
-                    style={{ background: [LIME, LIME_DIM, "#2E5A8C"][i] }}
+                    style={{ background: [LIME, LIME_DIM, "#2E5A8C", "#5CFFD9"][i] }}
                   />
                   <span className="text-xs text-ink-dim">
                     {d.key} · {d.name}

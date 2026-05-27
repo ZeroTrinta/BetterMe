@@ -161,3 +161,36 @@ export async function getTodasCorridas(): Promise<import("@/types").HistoricoCor
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 }
+
+/* ---------- PESO ---------- */
+const PESO_COL = "historico_peso";
+
+export async function registrarPeso(
+  peso_kg: number,
+  dateKey: string = todayKey(),
+  bf_pct?: number,
+  notas?: string
+) {
+  const ref = doc(db, PESO_COL, dateKey);
+  await setDoc(ref, {
+    data: dateKey,
+    peso_kg,
+    ...(bf_pct !== undefined && { bf_pct }),
+    ...(notas && { notas }),
+    registrado_em: Timestamp.now(),
+  });
+}
+
+export async function getTodosPesos(): Promise<import("@/types").HistoricoPeso[]> {
+  const q = query(collection(db, PESO_COL), orderBy("data", "asc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ data: d.id, ...(d.data() as any) }));
+}
+
+export async function getUltimoPeso(): Promise<import("@/types").HistoricoPeso | null> {
+  const q = query(collection(db, PESO_COL), orderBy("data", "desc"));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { data: d.id, ...(d.data() as any) };
+}

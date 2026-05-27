@@ -7,9 +7,18 @@ import { Card } from "@/components/ui/Card";
 import { ConsistencyHeatmap } from "@/components/charts/ConsistencyHeatmap";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { RefeicaoSheet } from "@/components/hub/RefeicaoSheet";
-import { getDietaDoDia, getDietaIntervalo, toggleRefeicao, todayKey } from "@/lib/firestore";
+import { PesoCard } from "@/components/hub/PesoCard";
+import { PesoSheet } from "@/components/hub/PesoSheet";
+import {
+  getDietaDoDia,
+  getDietaIntervalo,
+  toggleRefeicao,
+  todayKey,
+  getTodosPesos,
+} from "@/lib/firestore";
 import {
   HistoricoAlimentacao,
+  HistoricoPeso,
   REFEICOES_ORDEM,
   REFEICAO_LABEL,
   Refeicao,
@@ -28,24 +37,33 @@ export default function DietaPage() {
   const [dieta, setDieta] = useState<HistoricoAlimentacao | null>(null);
   const [heatmap, setHeatmap] = useState<Record<string, number>>({});
   const [sheetOpen, setSheetOpen] = useState<Refeicao | null>(null);
+  const [pesos, setPesos] = useState<HistoricoPeso[]>([]);
+  const [pesoSheetOpen, setPesoSheetOpen] = useState(false);
+
+  const refresh = async () => {
+    const hoje = todayKey();
+    const inicio = format(subDays(new Date(), 14 * 7), "yyyy-MM-dd");
+    const [d, hist, todosPesos] = await Promise.all([
+      getDietaDoDia(hoje),
+      getDietaIntervalo(inicio, hoje),
+      getTodosPesos(),
+    ]);
+    setDieta(d);
+    setPesos(todosPesos);
+    const map: Record<string, number> = {};
+    hist.forEach((h) => {
+      const total = REFEICOES_ORDEM.filter((r) => (h as any)[r]).length;
+      map[h.data] = total / 4;
+    });
+    setHeatmap(map);
+  };
 
   useEffect(() => {
-    (async () => {
-      const hoje = todayKey();
-      const inicio = format(subDays(new Date(), 14 * 7), "yyyy-MM-dd");
-      const [d, hist] = await Promise.all([
-        getDietaDoDia(hoje),
-        getDietaIntervalo(inicio, hoje),
-      ]);
-      setDieta(d);
-      const map: Record<string, number> = {};
-      hist.forEach((h) => {
-        const total = REFEICOES_ORDEM.filter((r) => (h as any)[r]).length;
-        map[h.data] = total / 4;
-      });
-      setHeatmap(map);
-    })();
+    refresh();
   }, []);
+
+  const ultimoPeso = pesos.length > 0 ? pesos[pesos.length - 1] : null;
+  const anteriorPeso = pesos.length > 1 ? pesos[pesos.length - 2] : null;
 
   const handleToggle = async (r: Refeicao) => {
     if (!dieta) return;
@@ -70,6 +88,15 @@ export default function DietaPage() {
         serifWord="nutricional"
         subtitle="Toque numa refeição para ver os detalhes."
       />
+
+      {/* PESO — Card discreto no topo */}
+      <section className="px-5 pb-4">
+        <PesoCard
+          ultimo={ultimoPeso}
+          anterior={anteriorPeso}
+          onClick={() => setPesoSheetOpen(true)}
+        />
+      </section>
 
       <section className="px-5">
         <Card>
@@ -170,6 +197,17 @@ export default function DietaPage() {
             }}
           />
         )}
+      </BottomSheet>
+
+      <BottomSheet open={pesoSheetOpen} onClose={() => setPesoSheetOpen(false)}>
+        <PesoSheet
+          ultimo={ultimoPeso}
+          historico={pesos}
+          onSaved={async () => {
+            await refresh();
+            setPesoSheetOpen(false);
+          }}
+        />
       </BottomSheet>
     </div>
   );
