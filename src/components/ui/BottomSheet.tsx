@@ -29,17 +29,17 @@ export function BottomSheet({ open, onClose, children, className }: Props) {
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — z-[55] cobre o BottomNav (z-50) */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-bg/70 backdrop-blur-md"
+            className="fixed inset-0 z-[55] bg-bg/70 backdrop-blur-md"
           />
 
-          {/* Sheet */}
+          {/* Sheet — z-60 fica acima do BottomNav (z-50) */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -50,18 +50,24 @@ export function BottomSheet({ open, onClose, children, className }: Props) {
             dragElastic={{ top: 0, bottom: 0.4 }}
             onDragEnd={handleDragEnd}
             className={cn(
-              "fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl",
+              "fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-md rounded-t-3xl",
               "glass-strong border-t border-white/10",
-              "max-h-[88vh] overflow-y-auto",
+              "max-h-[92vh] overflow-y-auto",
               className
             )}
-            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
           >
             {/* Handle */}
             <div className="sticky top-0 z-10 flex justify-center bg-bg-surface/60 pt-3 pb-2 backdrop-blur-md">
               <div className="h-1 w-10 rounded-full bg-white/20" />
             </div>
-            <div className="px-5 pb-6">{children}</div>
+            <div
+              className="px-5"
+              style={{
+                paddingBottom: "calc(2rem + env(safe-area-inset-bottom))",
+              }}
+            >
+              {children}
+            </div>
           </motion.div>
         </>
       )}
