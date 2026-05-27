@@ -13,9 +13,8 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 const nextConfig = {
   output: "export",
   images: { unoptimized: true },
-  // Se você publicar em <user>.github.io/BetterMe descomente as duas linhas abaixo:
-  // basePath: "/BetterMe",
-  // assetPrefix: "/BetterMe/",
+  basePath: "/BetterMe",
+  assetPrefix: "/BetterMe/",
   trailingSlash: true,
 };
 
