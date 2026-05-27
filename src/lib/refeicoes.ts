@@ -185,7 +185,6 @@ export const SUPLEMENTOS: Suplemento[] = [
 ];
 
 /* ---------- LISTA DE MERCADO SEMANAL ---------- */
-/** Preços médios em Campinas SP — referência Pague Menos / Tenda / feira (Q1 2026) */
 export interface ItemMercado {
   alimento: string;
   quantidade: string;
@@ -194,57 +193,67 @@ export interface ItemMercado {
   custo_max: number;
 }
 
+/** Lista enxuta — só o essencial do plano. Sem opcionais. */
 export const LISTA_MERCADO_SEMANAL: ItemMercado[] = [
   // Proteínas
-  { alimento: "Peito de Frango", quantidade: "2,5 a 2,8 kg cru/semana", como_comprar: "Bandejas de filé ou sassami — bom comprar congelado de 1kg", custo_min: 55, custo_max: 70 },
-  { alimento: "Ovos", quantidade: "30 unidades", como_comprar: "1 cartela de 30 (caipira ou branco)", custo_min: 22, custo_max: 28 },
-  { alimento: "Patinho moído (opcional)", quantidade: "500g", como_comprar: "Variar com frango 2-3x/semana", custo_min: 25, custo_max: 35 },
-  { alimento: "Tilápia ou Salmão", quantidade: "400-500g", como_comprar: "1-2x/semana — filé congelado é mais barato", custo_min: 20, custo_max: 60 },
+  { alimento: "Peito de Frango", quantidade: "2 kg cru", como_comprar: "Bandeja congelada", custo_min: 40, custo_max: 55 },
+  { alimento: "Ovos", quantidade: "30 unidades", como_comprar: "1 cartela", custo_min: 22, custo_max: 28 },
 
   // Carbos
-  { alimento: "Arroz Integral (ou branco)", quantidade: "500g cru", como_comprar: "Pacote de 1kg dura 2 semanas", custo_min: 4, custo_max: 8 },
-  { alimento: "Feijão Carioca", quantidade: "400g cru", como_comprar: "Pacote de 1kg dura 3 semanas", custo_min: 5, custo_max: 9 },
-  { alimento: "Batata Doce (ou Inglesa)", quantidade: "1,5 kg", como_comprar: "Feira sai bem mais barato", custo_min: 7, custo_max: 12 },
-  { alimento: "Pão de Forma Integral", quantidade: "1 pacote (18-20 fatias)", como_comprar: "Pacote padrão de supermercado", custo_min: 8, custo_max: 12 },
-  { alimento: "Aveia em Flocos", quantidade: "250g", como_comprar: "Pote ou caixa de 200-250g", custo_min: 5, custo_max: 8 },
+  { alimento: "Arroz", quantidade: "500g cru", como_comprar: "Pacote de 1kg dura 2 semanas", custo_min: 4, custo_max: 8 },
+  { alimento: "Feijão", quantidade: "400g cru", como_comprar: "Pacote de 1kg dura 3 semanas", custo_min: 5, custo_max: 9 },
+  { alimento: "Pão de Forma Integral", quantidade: "1 pacote", como_comprar: "18-20 fatias", custo_min: 8, custo_max: 12 },
+  { alimento: "Aveia em Flocos", quantidade: "250g", como_comprar: "1 pote", custo_min: 5, custo_max: 8 },
 
   // Gorduras boas
-  { alimento: "Pasta de Amendoim Integral", quantidade: "1 pote (500g)", como_comprar: "Dura 2-3 semanas. Marcas sem açúcar/sal", custo_min: 18, custo_max: 28 },
-  { alimento: "Azeite Extra-Virgem", quantidade: "1 garrafa (500ml)", como_comprar: "Dura 3-4 semanas. Acidez máx 0,5%", custo_min: 25, custo_max: 45 },
-  { alimento: "Castanhas mistas", quantidade: "200g", como_comprar: "Granel em mercado é mais barato que pacotinho", custo_min: 15, custo_max: 25 },
+  { alimento: "Azeite Extra-Virgem", quantidade: "1 garrafa", como_comprar: "Dura 3-4 semanas", custo_min: 25, custo_max: 35 },
+  { alimento: "Pasta de Amendoim", quantidade: "1 pote", como_comprar: "Dura 2-3 semanas", custo_min: 18, custo_max: 25 },
 
   // Laticínios
-  { alimento: "Iogurte Natural Integral", quantidade: "7 potes (170-200g)", como_comprar: "Pacote de 4 + 3 unitários, ou 2 baldes de 500g", custo_min: 18, custo_max: 28 },
-  { alimento: "Queijo Cottage ou Ricota", quantidade: "200g", como_comprar: "1 pote", custo_min: 10, custo_max: 18 },
+  { alimento: "Iogurte Natural", quantidade: "7 potes", como_comprar: "Integral, sem açúcar", custo_min: 18, custo_max: 25 },
 
   // Frutas e legumes
-  { alimento: "Bananas", quantidade: "10-12 unidades", como_comprar: "Penca média na feira", custo_min: 8, custo_max: 12 },
-  { alimento: "Mamão Formosa", quantidade: "1 unidade", como_comprar: "Dura a semana se guardado certo", custo_min: 7, custo_max: 12 },
-  { alimento: "Brócolis", quantidade: "1 maço", como_comprar: "Feira ou hortifruti", custo_min: 5, custo_max: 9 },
-  { alimento: "Cenoura + Abobrinha", quantidade: "~1 kg total", como_comprar: "Feira é imbatível", custo_min: 5, custo_max: 10 },
-  { alimento: "Folhas (alface, rúcula, espinafre)", quantidade: "2 maços", como_comprar: "Feira", custo_min: 6, custo_max: 10 },
+  { alimento: "Bananas", quantidade: "10-12 un", como_comprar: "1 penca", custo_min: 8, custo_max: 12 },
+  { alimento: "Mamão", quantidade: "1 unidade", como_comprar: "Formosa", custo_min: 7, custo_max: 10 },
+  { alimento: "Legumes (brócolis, cenoura, abobrinha)", quantidade: "~1 kg", como_comprar: "Feira", custo_min: 10, custo_max: 18 },
 ];
 
-/* ---------- ESTIMATIVAS FINANCEIRAS ---------- */
-export function calcularGastoEstimadoSemanal() {
-  const min = LISTA_MERCADO_SEMANAL.reduce((acc, item) => acc + item.custo_min, 0);
-  const max = LISTA_MERCADO_SEMANAL.reduce((acc, item) => acc + item.custo_max, 0);
-  return { min, max, medio: Math.round((min + max) / 2) };
-}
+/** Gasto padrão semanal estimado (usado quando ainda não há dados reais suficientes) */
+export const GASTO_PADRAO_SEMANAL = 200;
 
-export function calcularGastoEstimadoMensal() {
-  const semanal = calcularGastoEstimadoSemanal();
-  const supl_min = SUPLEMENTOS.reduce((acc, s) => acc + s.custo_mensal_min, 0);
-  const supl_max = SUPLEMENTOS.reduce((acc, s) => acc + s.custo_mensal_max, 0);
+/* ---------- ESTIMATIVAS FINANCEIRAS ---------- */
+/**
+ * Calcula gasto semanal estimado de forma adaptativa:
+ *   - Com menos de 4 compras registradas: usa GASTO_PADRAO_SEMANAL
+ *   - Com 4+ compras: usa a média semanal real do histórico
+ *
+ * Retorna: { valor, baseadoEm: "padrao" | "historico", amostras }
+ */
+export function calcularGastoSemanalAdaptativo(
+  compras: { valor_pago: number; data: string }[]
+): { valor: number; baseadoEm: "padrao" | "historico"; amostras: number } {
+  if (compras.length < 4) {
+    return {
+      valor: GASTO_PADRAO_SEMANAL,
+      baseadoEm: "padrao",
+      amostras: compras.length,
+    };
+  }
+
+  // Calcula intervalo total em dias entre primeira e última compra
+  const datas = compras.map((c) => new Date(c.data).getTime()).sort();
+  const totalGasto = compras.reduce((a, c) => a + c.valor_pago, 0);
+  const diasIntervalo = Math.max(
+    7,
+    Math.ceil((datas[datas.length - 1] - datas[0]) / (1000 * 60 * 60 * 24)) + 1
+  );
+  const semanas = diasIntervalo / 7;
+  const mediaSemanal = totalGasto / semanas;
+
   return {
-    alimentos_min: semanal.min * 4.33, // ~4,33 semanas/mês
-    alimentos_max: semanal.max * 4.33,
-    alimentos_medio: semanal.medio * 4.33,
-    suplementos_min: supl_min,
-    suplementos_max: supl_max,
-    total_min: Math.round(semanal.min * 4.33 + supl_min),
-    total_max: Math.round(semanal.max * 4.33 + supl_max),
-    total_medio: Math.round(semanal.medio * 4.33 + (supl_min + supl_max) / 2),
+    valor: Math.round(mediaSemanal),
+    baseadoEm: "historico",
+    amostras: compras.length,
   };
 }
 

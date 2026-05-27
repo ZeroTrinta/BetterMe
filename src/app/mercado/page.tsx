@@ -4,15 +4,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { SwipeItem } from "@/components/ui/SwipeItem";
-import { Plus, Receipt, TrendingDown, Sparkles, Pill } from "lucide-react";
-import { getComprasMes, monthKey, registrarCompra } from "@/lib/firestore";
+import { Plus, Receipt, TrendingDown, Sparkles } from "lucide-react";
+import {
+  getComprasMes,
+  getTodasCompras,
+  monthKey,
+  registrarCompra,
+} from "@/lib/firestore";
 import { formatBRL } from "@/lib/utils";
 import { CompraMercado } from "@/types";
 import {
   LISTA_MERCADO_SEMANAL,
-  SUPLEMENTOS,
-  calcularGastoEstimadoSemanal,
-  calcularGastoEstimadoMensal,
+  calcularGastoSemanalAdaptativo,
 } from "@/lib/refeicoes";
 
 interface ListaItem {
@@ -35,13 +38,19 @@ export default function MercadoPage() {
   const [novo, setNovo] = useState("");
   const [valor, setValor] = useState("");
   const [compras, setCompras] = useState<CompraMercado[]>([]);
+  const [todasCompras, setTodasCompras] = useState<CompraMercado[]>([]);
 
   // Persistência local (lista é pessoal, sem necessidade de Firebase)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const raw = localStorage.getItem(STORAGE_KEY);
     setLista(raw ? JSON.parse(raw) : TEMPLATE);
-    getComprasMes(monthKey()).then(setCompras);
+    Promise.all([getComprasMes(monthKey()), getTodasCompras()]).then(
+      ([mes, todas]) => {
+        setCompras(mes);
+        setTodasCompras(todas);
+      }
+    );
   }, []);
 
   useEffect(() => {
@@ -63,8 +72,9 @@ export default function MercadoPage() {
     if (isNaN(v) || v <= 0) return;
     await registrarCompra(v);
     setValor("");
-    const c = await getComprasMes(monthKey());
+    const [c, t] = await Promise.all([getComprasMes(monthKey()), getTodasCompras()]);
     setCompras(c);
+    setTodasCompras(t);
   };
 
   return (
@@ -93,8 +103,8 @@ export default function MercadoPage() {
         </Card>
       </section>
 
-      {/* ORÇAMENTO ESTIMADO — Campinas SP */}
-      <BlocoOrcamento gastoReal={total} />
+      {/* ORÇAMENTO ESTIMADO — adaptativo */}
+      <BlocoOrcamento gastoReal={total} todasCompras={todasCompras} />
 
       {/* REGISTRAR COMPRA */}
       <section className="mt-4 px-5">
@@ -178,20 +188,26 @@ export default function MercadoPage() {
   );
 }
 
-/* ---------- Bloco de orçamento estimado ---------- */
-function BlocoOrcamento({ gastoReal }: { gastoReal: number }) {
-  const semanal = calcularGastoEstimadoSemanal();
-  const mensal = calcularGastoEstimadoMensal();
-  const suplMin = SUPLEMENTOS.reduce((a, s) => a + s.custo_mensal_min, 0);
-  const suplMax = SUPLEMENTOS.reduce((a, s) => a + s.custo_mensal_max, 0);
+/* ---------- Bloco de orçamento estimado (adaptativo) ---------- */
+function BlocoOrcamento({
+  gastoReal,
+  todasCompras,
+}: {
+  gastoReal: number;
+  todasCompras: CompraMercado[];
+}) {
+  const estimativa = calcularGastoSemanalAdaptativo(todasCompras);
+  const semanalEstimado = estimativa.valor;
+  const mensalEstimado = Math.round(semanalEstimado * 4.33);
 
-  // Status do gasto real vs estimado
-  const dentroDaMeta = gastoReal > 0 && gastoReal <= mensal.total_max;
-  const corStatus = gastoReal === 0
-    ? "text-ink-dim"
-    : dentroDaMeta
-    ? "text-lime"
-    : "text-red-300";
+  // Status do gasto real do mês vs estimado mensal
+  const dentroDaMeta = gastoReal > 0 && gastoReal <= mensalEstimado * 1.1;
+  const corStatus =
+    gastoReal === 0
+      ? "text-ink-dim"
+      : dentroDaMeta
+      ? "text-lime"
+      : "text-red-300";
 
   return (
     <section className="mt-4 px-5">
@@ -199,73 +215,44 @@ function BlocoOrcamento({ gastoReal }: { gastoReal: number }) {
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-lime" />
           <p className="text-[11px] uppercase tracking-[0.2em] text-ink-dim">
-            Orçamento estimado · Campinas SP
+            Gasto estimado
           </p>
         </div>
 
-        {/* Linhas de breakdown */}
         <div className="mt-4 space-y-3">
           <div className="flex items-baseline justify-between">
-            <div>
-              <p className="text-sm text-ink">Alimentos · semana</p>
-              <p className="text-[10px] text-ink-mute">
-                {LISTA_MERCADO_SEMANAL.length} itens da lista nutricional
-              </p>
-            </div>
-            <p className="font-display text-lg text-ink">
-              R$ {semanal.min}–{semanal.max}
+            <p className="text-sm text-ink">Por semana</p>
+            <p className="font-display text-2xl text-ink">
+              {formatBRL(semanalEstimado)}
             </p>
           </div>
 
           <div className="h-px bg-white/5" />
 
           <div className="flex items-baseline justify-between">
-            <div>
-              <p className="text-sm text-ink">Alimentos · mês</p>
-              <p className="text-[10px] text-ink-mute">~4,3 semanas</p>
-            </div>
-            <p className="font-display text-lg text-ink">
-              R$ {Math.round(mensal.alimentos_min)}–{Math.round(mensal.alimentos_max)}
-            </p>
-          </div>
-
-          <div className="h-px bg-white/5" />
-
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-center gap-2">
-              <Pill className="h-4 w-4 text-lime/70" />
-              <div>
-                <p className="text-sm text-ink">Suplementação</p>
-                <p className="text-[10px] text-ink-mute">
-                  {SUPLEMENTOS.map((s) => s.nome.split(" ")[0]).join(" + ")}
-                </p>
-              </div>
-            </div>
-            <p className="font-display text-lg text-ink">
-              R$ {suplMin}–{suplMax}
-            </p>
-          </div>
-
-          <div className="h-px bg-white/5" />
-
-          <div className="flex items-baseline justify-between pt-1">
-            <div>
-              <p className="text-sm font-medium text-ink">Total previsto · mês</p>
-              <p className="text-[10px] text-ink-mute">Alimentos + suplementos</p>
-            </div>
+            <p className="text-sm text-ink">Por mês</p>
             <p className="font-display text-2xl text-lime text-glow">
-              R$ {mensal.total_min}–{mensal.total_max}
+              {formatBRL(mensalEstimado)}
             </p>
           </div>
         </div>
+
+        {/* Origem do cálculo */}
+        <p className="mt-3 text-[10px] text-ink-mute">
+          {estimativa.baseadoEm === "padrao"
+            ? `Estimativa padrão · faltam ${4 - estimativa.amostras} compra${
+                4 - estimativa.amostras === 1 ? "" : "s"
+              } pra calcular pela sua média`
+            : `Baseado em ${estimativa.amostras} compras suas`}
+        </p>
 
         {/* Status do gasto real */}
         {gastoReal > 0 && (
           <div className="mt-4 rounded-2xl bg-white/[0.03] p-3 text-xs">
             <p className={corStatus}>
               {dentroDaMeta
-                ? `✓ Você está em ${formatBRL(gastoReal)} · dentro do previsto`
-                : `⚠ Você já gastou ${formatBRL(gastoReal)} · acima do teto previsto (R$ ${mensal.total_max})`}
+                ? `✓ ${formatBRL(gastoReal)} no mês · dentro da média`
+                : `⚠ ${formatBRL(gastoReal)} no mês · acima da média estimada`}
             </p>
           </div>
         )}
