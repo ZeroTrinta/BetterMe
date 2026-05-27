@@ -12,9 +12,9 @@ const config: Config = {
           border: "#22252B",
         },
         lime: {
-          DEFAULT: "#D9FF5C",
-          glow: "#C8F95A",
-          dim: "#8FAB3D",
+          DEFAULT: "#7BB8FF",
+          glow: "#9BCBFF",
+          dim: "#4A7FBF",
         },
         ink: {
           DEFAULT: "#F4F5F7",

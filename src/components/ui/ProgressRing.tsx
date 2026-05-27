@@ -19,8 +19,8 @@ export function ProgressRing({ value, size = 200, stroke = 12, label }: Props) {
       <svg width={size} height={size} className="rotate-[-90deg]">
         <defs>
           <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#D9FF5C" />
-            <stop offset="100%" stopColor="#8FAB3D" />
+            <stop offset="0%" stopColor="#7BB8FF" />
+            <stop offset="100%" stopColor="#4A7FBF" />
           </linearGradient>
           <filter id="ringGlow">
             <feGaussianBlur stdDeviation="3" result="b" />

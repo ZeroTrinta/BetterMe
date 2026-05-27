@@ -18,6 +18,17 @@ export interface HistoricoTreino {
   registrado_em?: string;
 }
 
+export interface HistoricoCorrida {
+  /** auto id */
+  id?: string;
+  data: string;
+  distancia_km: number;
+  duracao_min: number;
+  /** min/km derivado */
+  ritmo_min_km: number;
+  notas?: string;
+}
+
 export interface CompraMercado {
   data: string;
   mes: string; // YYYY-MM

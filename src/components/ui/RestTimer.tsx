@@ -70,8 +70,8 @@ export function RestTimer({ durationSec = 90, onClose }: Props) {
           <svg width={size} height={size} className="rotate-[-90deg]">
             <defs>
               <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#D9FF5C" />
-                <stop offset="100%" stopColor="#8FAB3D" />
+                <stop offset="0%" stopColor="#7BB8FF" />
+                <stop offset="100%" stopColor="#4A7FBF" />
               </linearGradient>
             </defs>
             <circle
@@ -121,7 +121,7 @@ export function RestTimer({ durationSec = 90, onClose }: Props) {
           </button>
           <button
             onClick={() => setRunning((r) => !r)}
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-lime text-bg shadow-[0_0_40px_rgba(217,255,92,0.4)]"
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-lime text-bg shadow-[0_0_40px_rgba(123, 184, 255,0.4)]"
           >
             {running ? (
               <Pause className="h-6 w-6" strokeWidth={2.5} />

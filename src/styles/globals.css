@@ -24,8 +24,8 @@ body::before {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(120% 80% at 50% -10%, rgba(217, 255, 92, 0.07), transparent 55%),
-    radial-gradient(60% 40% at 100% 100%, rgba(217, 255, 92, 0.04), transparent 60%);
+    radial-gradient(120% 80% at 50% -10%, rgba(123, 184, 255, 0.07), transparent 55%),
+    radial-gradient(60% 40% at 100% 100%, rgba(123, 184, 255, 0.04), transparent 60%);
 }
 
 body::after {
@@ -59,10 +59,10 @@ body::after {
     -webkit-backdrop-filter: blur(16px);
   }
   .text-glow {
-    text-shadow: 0 0 24px rgba(217, 255, 92, 0.45);
+    text-shadow: 0 0 24px rgba(123, 184, 255, 0.45);
   }
   .ring-glow {
-    box-shadow: 0 0 0 1px rgba(217, 255, 92, 0.35), 0 0 32px rgba(217, 255, 92, 0.18);
+    box-shadow: 0 0 0 1px rgba(123, 184, 255, 0.35), 0 0 32px rgba(123, 184, 255, 0.18);
   }
   .hairline {
     background-image: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);

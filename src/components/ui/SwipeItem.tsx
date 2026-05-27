@@ -18,8 +18,8 @@ export function SwipeItem({ item, onToggle, onDelete }: Props) {
       "rgba(255,80,80,0.18)",
       "rgba(255,255,255,0)",
       "rgba(255,255,255,0)",
-      "rgba(217,255,92,0.10)",
-      "rgba(217,255,92,0.22)",
+      "rgba(123, 184, 255,0.10)",
+      "rgba(123, 184, 255,0.22)",
     ]
   );
 

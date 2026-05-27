@@ -5,13 +5,16 @@ import { format, subDays } from "date-fns";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { ConsistencyHeatmap } from "@/components/charts/ConsistencyHeatmap";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { RefeicaoSheet } from "@/components/hub/RefeicaoSheet";
 import { getDietaDoDia, getDietaIntervalo, toggleRefeicao, todayKey } from "@/lib/firestore";
 import {
   HistoricoAlimentacao,
   REFEICOES_ORDEM,
   REFEICAO_LABEL,
+  Refeicao,
 } from "@/types";
-import { Check, Coffee, Soup, Apple, Moon } from "lucide-react";
+import { Check, Coffee, Soup, Apple, Moon, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ICONS = {
@@ -24,6 +27,7 @@ const ICONS = {
 export default function DietaPage() {
   const [dieta, setDieta] = useState<HistoricoAlimentacao | null>(null);
   const [heatmap, setHeatmap] = useState<Record<string, number>>({});
+  const [sheetOpen, setSheetOpen] = useState<Refeicao | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -43,7 +47,7 @@ export default function DietaPage() {
     })();
   }, []);
 
-  const handle = async (r: (typeof REFEICOES_ORDEM)[number]) => {
+  const handleToggle = async (r: Refeicao) => {
     if (!dieta) return;
     const novo = !dieta[r];
     setDieta({ ...dieta, [r]: novo });
@@ -64,7 +68,7 @@ export default function DietaPage() {
         eyebrow="Nutrição"
         title="Arquitetura"
         serifWord="nutricional"
-        subtitle="Déficit estratégico, massa preservada."
+        subtitle="Toque numa refeição para ver os detalhes."
       />
 
       <section className="px-5">
@@ -88,7 +92,7 @@ export default function DietaPage() {
                     <div
                       key={i}
                       className="h-2 w-2 rounded-sm"
-                      style={{ background: `rgba(217,255,92,${i})` }}
+                      style={{ background: `rgba(123, 184, 255, ${i})` }}
                     />
                   ))}
                 </div>
@@ -107,46 +111,66 @@ export default function DietaPage() {
           const Icon = ICONS[r];
           const checked = dieta?.[r] ?? false;
           return (
-            <motion.button
+            <motion.div
               key={r}
-              onClick={() => handle(r)}
-              whileTap={{ scale: 0.98 }}
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
               className={cn(
-                "glass flex w-full items-center gap-4 rounded-2xl p-4 text-left transition-all",
+                "glass flex w-full items-center gap-3 rounded-2xl p-4 transition-all",
                 checked && "ring-1 ring-lime/40"
               )}
             >
-              <div
-                className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-xl",
-                  checked ? "bg-lime/20 text-lime" : "bg-white/[0.04] text-ink-dim"
-                )}
+              <button
+                onClick={() => setSheetOpen(r)}
+                className="flex flex-1 items-center gap-3 text-left"
               >
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-ink">{REFEICAO_LABEL[r]}</p>
-                <p className="text-xs text-ink-dim">
-                  {checked ? "Concluído" : "Toque para registrar"}
-                </p>
-              </div>
-              <div
+                <div
+                  className={cn(
+                    "flex h-11 w-11 items-center justify-center rounded-xl",
+                    checked ? "bg-lime/20 text-lime" : "bg-white/[0.04] text-ink-dim"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-ink">{REFEICAO_LABEL[r]}</p>
+                  <p className="text-xs text-ink-dim">
+                    {checked ? "Concluído" : "Toque para ver detalhes"}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-ink-mute" />
+              </button>
+
+              <button
+                onClick={() => handleToggle(r)}
+                aria-label={checked ? "Desmarcar" : "Marcar"}
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-all",
                   checked
                     ? "border-lime bg-lime text-bg"
-                    : "border-white/15 bg-transparent"
+                    : "border-white/15 bg-transparent active:bg-white/5"
                 )}
               >
                 {checked && <Check className="h-4 w-4" strokeWidth={3} />}
-              </div>
-            </motion.button>
+              </button>
+            </motion.div>
           );
         })}
       </section>
+
+      <BottomSheet open={sheetOpen !== null} onClose={() => setSheetOpen(null)}>
+        {sheetOpen && (
+          <RefeicaoSheet
+            refeicao={sheetOpen}
+            checked={dieta?.[sheetOpen] ?? false}
+            onToggle={async () => {
+              await handleToggle(sheetOpen);
+              setTimeout(() => setSheetOpen(null), 200);
+            }}
+          />
+        )}
+      </BottomSheet>
     </div>
   );
 }

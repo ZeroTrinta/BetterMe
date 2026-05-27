@@ -22,7 +22,18 @@ import {
 import { format } from "date-fns";
 
 /* ---------- helpers ---------- */
-export const todayKey = () => format(new Date(), "yyyy-MM-dd");
+/**
+ * Chave do dia "lógico" — entre 0h e 4h ainda conta como o dia anterior.
+ * Permite marcar jantar de madrugada sem corromper o tracking.
+ */
+export const todayKey = () => {
+  const now = new Date();
+  const ref = new Date(now);
+  if (now.getHours() < 4) {
+    ref.setDate(ref.getDate() - 1);
+  }
+  return format(ref, "yyyy-MM-dd");
+};
 export const monthKey = (d: Date = new Date()) => format(d, "yyyy-MM");
 
 /* ---------- DIETA ---------- */
@@ -119,4 +130,34 @@ export async function getComprasMes(mes: string = monthKey()): Promise<CompraMer
 export async function getTodasCompras(): Promise<CompraMercado[]> {
   const snap = await getDocs(collection(db, MERCADO_COL));
   return snap.docs.map((d) => d.data() as CompraMercado);
+}
+
+/* ---------- CORRIDA ---------- */
+const CORRIDA_COL = "historico_corrida";
+
+export async function registrarCorrida(c: Omit<import("@/types").HistoricoCorrida, "id">) {
+  await addDoc(collection(db, CORRIDA_COL), {
+    ...c,
+    registrado_em: Timestamp.now(),
+  });
+}
+
+export async function getCorridasIntervalo(
+  startKey: string,
+  endKey: string
+): Promise<import("@/types").HistoricoCorrida[]> {
+  const q = query(
+    collection(db, CORRIDA_COL),
+    where("data", ">=", startKey),
+    where("data", "<=", endKey),
+    orderBy("data", "desc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+}
+
+export async function getTodasCorridas(): Promise<import("@/types").HistoricoCorrida[]> {
+  const q = query(collection(db, CORRIDA_COL), orderBy("data", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 }

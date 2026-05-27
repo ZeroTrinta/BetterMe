@@ -20,15 +20,16 @@ import {
   getDietaIntervalo,
   getTreinosIntervalo,
   getTodasCompras,
+  getTodasCorridas,
   todayKey,
 } from "@/lib/firestore";
-import { REFEICOES_ORDEM, TREINO_LABEL } from "@/types";
-import { format, subDays, subMonths, eachMonthOfInterval } from "date-fns";
+import { REFEICOES_ORDEM, TREINO_LABEL, HistoricoCorrida } from "@/types";
+import { format, subDays, subMonths, eachMonthOfInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatBRL } from "@/lib/utils";
+import { formatBRL, formatPace } from "@/lib/utils";
 
-const LIME = "#D9FF5C";
-const LIME_DIM = "#8FAB3D";
+const LIME = "#7BB8FF";
+const LIME_DIM = "#4A7FBF";
 const SLATE = "#3a3d44";
 
 export default function InsightsPage() {
@@ -37,6 +38,8 @@ export default function InsightsPage() {
   const [distrib, setDistrib] = useState<{ name: string; value: number; key: string }[]>([]);
   const [gastoMensal, setGastoMensal] = useState<{ mes: string; valor: number }[]>([]);
   const [tendenciaPct, setTendenciaPct] = useState(0);
+  const [corridas, setCorridas] = useState<HistoricoCorrida[]>([]);
+  const [evolucaoRitmo, setEvolucaoRitmo] = useState<{ data: string; ritmo: number; km: number }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -92,6 +95,20 @@ export default function InsightsPage() {
         const pen = dados[dados.length - 2].valor;
         if (pen > 0) setTendenciaPct(((ult - pen) / pen) * 100);
       }
+
+      // CORRIDAS — todas + curva de evolução de ritmo
+      const todasCorridas = await getTodasCorridas();
+      setCorridas(todasCorridas);
+      // Pega últimas 12 corridas em ordem cronológica
+      const ult12 = [...todasCorridas]
+        .sort((a, b) => a.data.localeCompare(b.data))
+        .slice(-12)
+        .map((c) => ({
+          data: format(parseISO(c.data), "dd/MM"),
+          ritmo: Number(c.ritmo_min_km.toFixed(2)),
+          km: c.distancia_km,
+        }));
+      setEvolucaoRitmo(ult12);
     })();
   }, []);
 
@@ -146,7 +163,7 @@ export default function InsightsPage() {
                       d.pct >= 75
                         ? LIME
                         : d.pct >= 50
-                        ? "rgba(217,255,92,0.5)"
+                        ? "rgba(123, 184, 255,0.5)"
                         : "rgba(255,255,255,0.15)",
                   }}
                 />
@@ -186,7 +203,7 @@ export default function InsightsPage() {
                         key={entry.key}
                         fill={
                           distrib.some((d) => d.value > 0)
-                            ? [LIME, LIME_DIM, "#5A6E26"][i]
+                            ? [LIME, LIME_DIM, "#2E5A8C"][i]
                             : "rgba(255,255,255,0.06)"
                         }
                       />
@@ -200,7 +217,7 @@ export default function InsightsPage() {
                 <div key={d.key} className="flex items-center gap-2">
                   <span
                     className="h-2.5 w-2.5 rounded-full"
-                    style={{ background: [LIME, LIME_DIM, "#5A6E26"][i] }}
+                    style={{ background: [LIME, LIME_DIM, "#2E5A8C"][i] }}
                   />
                   <span className="text-xs text-ink-dim">
                     {d.key} · {d.name}
@@ -249,7 +266,7 @@ export default function InsightsPage() {
                 />
                 <YAxis hide />
                 <Tooltip
-                  cursor={{ fill: "rgba(217,255,92,0.06)" }}
+                  cursor={{ fill: "rgba(123, 184, 255,0.06)" }}
                   contentStyle={{
                     background: "#101114",
                     border: "1px solid #22252B",
@@ -271,6 +288,131 @@ export default function InsightsPage() {
           </div>
         </Card>
       </section>
+
+      {/* CORRIDA — Evolução de Ritmo */}
+      {evolucaoRitmo.length > 0 && (
+        <section className="mt-4 px-5">
+          <Card>
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-ink-dim">
+                  Evolução do ritmo
+                </p>
+                <p className="mt-1 font-display text-3xl text-ink">
+                  {formatPace(evolucaoRitmo[evolucaoRitmo.length - 1].ritmo)}
+                </p>
+              </div>
+              <p className="text-[10px] text-ink-mute">
+                {corridas.length} corrida{corridas.length === 1 ? "" : "s"} registradas
+              </p>
+            </div>
+
+            <div className="mt-3 h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={evolucaoRitmo}>
+                  <defs>
+                    <linearGradient id="ritmoG" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={LIME} stopOpacity={0.5} />
+                      <stop offset="100%" stopColor={LIME} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="2 4"
+                    stroke="rgba(255,255,255,0.04)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="data"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#5A5E68", fontSize: 9 }}
+                  />
+                  <YAxis
+                    reversed
+                    domain={["dataMin - 0.3", "dataMax + 0.3"]}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#5A5E68", fontSize: 9 }}
+                    tickFormatter={(v) => formatPace(v).replace("/km", "")}
+                    width={32}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#101114",
+                      border: "1px solid #22252B",
+                      borderRadius: 12,
+                      fontSize: 12,
+                    }}
+                    formatter={(v: number, name: string) =>
+                      name === "ritmo" ? [formatPace(v), "Ritmo"] : [v, "km"]
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="ritmo"
+                    stroke={LIME}
+                    strokeWidth={2.5}
+                    fill="url(#ritmoG)"
+                    dot={{ fill: LIME, r: 3 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="mt-2 text-[10px] text-ink-mute">
+              Eixo invertido: menor é melhor. Cada ponto = uma corrida.
+            </p>
+          </Card>
+        </section>
+      )}
+
+      {/* CORRIDA — Distância por corrida */}
+      {evolucaoRitmo.length > 0 && (
+        <section className="mt-4 px-5">
+          <Card>
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-ink-dim">
+                  Distância por sessão
+                </p>
+                <p className="mt-1 font-display text-3xl text-ink">
+                  {corridas.reduce((a, c) => a + c.distancia_km, 0).toFixed(1)}
+                  <span className="text-base text-ink-dim"> km totais</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={evolucaoRitmo} barCategoryGap={4}>
+                  <CartesianGrid
+                    strokeDasharray="2 4"
+                    stroke="rgba(255,255,255,0.04)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="data"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#5A5E68", fontSize: 9 }}
+                  />
+                  <YAxis hide />
+                  <Tooltip
+                    cursor={{ fill: "rgba(123, 184, 255, 0.06)" }}
+                    contentStyle={{
+                      background: "#101114",
+                      border: "1px solid #22252B",
+                      borderRadius: 12,
+                      fontSize: 12,
+                    }}
+                    formatter={(v: number) => [`${v.toFixed(2)} km`, "Distância"]}
+                  />
+                  <Bar dataKey="km" radius={[4, 4, 2, 2]} fill={LIME} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </section>
+      )}
 
       <div className="h-6" />
     </div>

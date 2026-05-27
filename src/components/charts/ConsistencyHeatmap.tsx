@@ -41,10 +41,10 @@ export function ConsistencyHeatmap({ data, weeks = 14 }: Props) {
                 background:
                   cell.intensity === 0
                     ? "rgba(255,255,255,0.04)"
-                    : `rgba(217, 255, 92, ${0.18 + cell.intensity * 0.72})`,
+                    : `rgba(123, 184, 255, ${0.18 + cell.intensity * 0.72})`,
                 boxShadow:
                   cell.intensity > 0.6
-                    ? "0 0 8px rgba(217,255,92,0.35)"
+                    ? "0 0 8px rgba(123, 184, 255,0.35)"
                     : undefined,
               }}
             />
