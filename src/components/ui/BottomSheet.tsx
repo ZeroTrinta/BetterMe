@@ -2,6 +2,7 @@
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useUI } from "@/lib/ui-context";
 
 interface Props {
   open: boolean;
@@ -23,16 +24,19 @@ interface Props {
  */
 export function BottomSheet({ open, onClose, children, className }: Props) {
   const [snap, setSnap] = useState<"half" | "full">("half");
+  const { setSheetOpen } = useUI();
 
   useEffect(() => {
+    setSheetOpen(open);
     if (open) {
       setSnap("half");
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = "";
+        setSheetOpen(false);
       };
     }
-  }, [open]);
+  }, [open, setSheetOpen]);
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     const { offset, velocity } = info;

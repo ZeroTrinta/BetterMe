@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@/styles/globals.css";
 import BottomNav from "@/components/layout/BottomNav";
+import { UIProvider } from "@/lib/ui-context";
 
 export const metadata: Metadata = {
   title: "BetterMe — Performance Hub",
@@ -40,8 +41,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}</style>
       </head>
       <body className="min-h-dvh font-sans">
-        <main className="relative z-10 mx-auto max-w-md pt-safe" style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}>{children}</main>
-        <BottomNav />
+        <UIProvider>
+          <main className="relative z-10 mx-auto max-w-md pt-safe" style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}>{children}</main>
+          <BottomNav />
+        </UIProvider>
       </body>
     </html>
   );
