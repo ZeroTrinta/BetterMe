@@ -4,10 +4,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { SwipeItem } from "@/components/ui/SwipeItem";
-import { Plus, Receipt, TrendingDown } from "lucide-react";
+import { Plus, Receipt, TrendingDown, Sparkles, Pill } from "lucide-react";
 import { getComprasMes, monthKey, registrarCompra } from "@/lib/firestore";
 import { formatBRL } from "@/lib/utils";
 import { CompraMercado } from "@/types";
+import {
+  LISTA_MERCADO_SEMANAL,
+  SUPLEMENTOS,
+  calcularGastoEstimadoSemanal,
+  calcularGastoEstimadoMensal,
+} from "@/lib/refeicoes";
 
 interface ListaItem {
   id: string;
@@ -15,18 +21,14 @@ interface ListaItem {
   done: boolean;
 }
 
-const STORAGE_KEY = "betterme:lista-mercado";
+const STORAGE_KEY = "betterme:lista-mercado-v2";
 
-const TEMPLATE: ListaItem[] = [
-  { id: "1", nome: "Frango (1kg)", done: false },
-  { id: "2", nome: "Ovos (30un)", done: false },
-  { id: "3", nome: "Pão Integral", done: false },
-  { id: "4", nome: "Arroz Integral", done: false },
-  { id: "5", nome: "Feijão", done: false },
-  { id: "6", nome: "Whey Protein", done: false },
-  { id: "7", nome: "Aveia", done: false },
-  { id: "8", nome: "Frutas (banana, maçã)", done: false },
-];
+// Template gerado a partir da lista nutricional oficial
+const TEMPLATE: ListaItem[] = LISTA_MERCADO_SEMANAL.map((item, i) => ({
+  id: String(i + 1),
+  nome: `${item.alimento} · ${item.quantidade}`,
+  done: false,
+}));
 
 export default function MercadoPage() {
   const [lista, setLista] = useState<ListaItem[]>([]);
@@ -79,7 +81,7 @@ export default function MercadoPage() {
         <Card className="p-4">
           <Receipt className="h-5 w-5 text-lime" />
           <p className="mt-3 font-display text-3xl text-ink">{formatBRL(total)}</p>
-          <p className="text-xs text-ink-dim">Gasto no mês</p>
+          <p className="text-xs text-ink-dim">Gasto real (mês)</p>
         </Card>
         <Card className="p-4">
           <TrendingDown className="h-5 w-5 text-lime" />
@@ -90,6 +92,9 @@ export default function MercadoPage() {
           <p className="text-xs text-ink-dim">Itens comprados</p>
         </Card>
       </section>
+
+      {/* ORÇAMENTO ESTIMADO — Campinas SP */}
+      <BlocoOrcamento gastoReal={total} />
 
       {/* REGISTRAR COMPRA */}
       <section className="mt-4 px-5">
@@ -170,5 +175,101 @@ export default function MercadoPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+/* ---------- Bloco de orçamento estimado ---------- */
+function BlocoOrcamento({ gastoReal }: { gastoReal: number }) {
+  const semanal = calcularGastoEstimadoSemanal();
+  const mensal = calcularGastoEstimadoMensal();
+  const suplMin = SUPLEMENTOS.reduce((a, s) => a + s.custo_mensal_min, 0);
+  const suplMax = SUPLEMENTOS.reduce((a, s) => a + s.custo_mensal_max, 0);
+
+  // Status do gasto real vs estimado
+  const dentroDaMeta = gastoReal > 0 && gastoReal <= mensal.total_max;
+  const corStatus = gastoReal === 0
+    ? "text-ink-dim"
+    : dentroDaMeta
+    ? "text-lime"
+    : "text-red-300";
+
+  return (
+    <section className="mt-4 px-5">
+      <Card>
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-lime" />
+          <p className="text-[11px] uppercase tracking-[0.2em] text-ink-dim">
+            Orçamento estimado · Campinas SP
+          </p>
+        </div>
+
+        {/* Linhas de breakdown */}
+        <div className="mt-4 space-y-3">
+          <div className="flex items-baseline justify-between">
+            <div>
+              <p className="text-sm text-ink">Alimentos · semana</p>
+              <p className="text-[10px] text-ink-mute">
+                {LISTA_MERCADO_SEMANAL.length} itens da lista nutricional
+              </p>
+            </div>
+            <p className="font-display text-lg text-ink">
+              R$ {semanal.min}–{semanal.max}
+            </p>
+          </div>
+
+          <div className="h-px bg-white/5" />
+
+          <div className="flex items-baseline justify-between">
+            <div>
+              <p className="text-sm text-ink">Alimentos · mês</p>
+              <p className="text-[10px] text-ink-mute">~4,3 semanas</p>
+            </div>
+            <p className="font-display text-lg text-ink">
+              R$ {Math.round(mensal.alimentos_min)}–{Math.round(mensal.alimentos_max)}
+            </p>
+          </div>
+
+          <div className="h-px bg-white/5" />
+
+          <div className="flex items-baseline justify-between">
+            <div className="flex items-center gap-2">
+              <Pill className="h-4 w-4 text-lime/70" />
+              <div>
+                <p className="text-sm text-ink">Suplementação</p>
+                <p className="text-[10px] text-ink-mute">
+                  {SUPLEMENTOS.map((s) => s.nome.split(" ")[0]).join(" + ")}
+                </p>
+              </div>
+            </div>
+            <p className="font-display text-lg text-ink">
+              R$ {suplMin}–{suplMax}
+            </p>
+          </div>
+
+          <div className="h-px bg-white/5" />
+
+          <div className="flex items-baseline justify-between pt-1">
+            <div>
+              <p className="text-sm font-medium text-ink">Total previsto · mês</p>
+              <p className="text-[10px] text-ink-mute">Alimentos + suplementos</p>
+            </div>
+            <p className="font-display text-2xl text-lime text-glow">
+              R$ {mensal.total_min}–{mensal.total_max}
+            </p>
+          </div>
+        </div>
+
+        {/* Status do gasto real */}
+        {gastoReal > 0 && (
+          <div className="mt-4 rounded-2xl bg-white/[0.03] p-3 text-xs">
+            <p className={corStatus}>
+              {dentroDaMeta
+                ? `✓ Você está em ${formatBRL(gastoReal)} · dentro do previsto`
+                : `⚠ Você já gastou ${formatBRL(gastoReal)} · acima do teto previsto (R$ ${mensal.total_max})`}
+            </p>
+          </div>
+        )}
+      </Card>
+    </section>
   );
 }

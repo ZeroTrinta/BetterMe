@@ -1,7 +1,7 @@
 "use client";
 import { Refeicao, REFEICAO_LABEL } from "@/types";
 import { REFEICAO_DETALHES } from "@/lib/refeicoes";
-import { Coffee, Soup, Apple, Moon, Check, Flame, Wheat, Beef } from "lucide-react";
+import { Coffee, Soup, Apple, Moon, Check, Flame, Wheat, Beef, Droplet } from "lucide-react";
 import { motion } from "framer-motion";
 
 const ICONS = {
@@ -39,22 +39,27 @@ export function RefeicaoSheet({ refeicao, checked, onToggle }: Props) {
         </div>
       </div>
 
-      {/* Macros */}
-      <div className="mt-5 grid grid-cols-3 gap-2">
-        <div className="glass rounded-2xl p-3 text-center">
+      {/* Macros — 4 cards (P · C · G · kcal) */}
+      <div className="mt-5 grid grid-cols-4 gap-2">
+        <div className="glass rounded-2xl p-2.5 text-center">
           <Beef className="mx-auto h-4 w-4 text-lime" />
-          <p className="mt-1 font-display text-xl text-ink">{det.proteina_g}g</p>
-          <p className="text-[10px] uppercase tracking-wider text-ink-mute">Proteína</p>
+          <p className="mt-1 font-display text-lg text-ink leading-tight">{det.proteina_g}g</p>
+          <p className="text-[9px] uppercase tracking-wider text-ink-mute">Proteína</p>
         </div>
-        <div className="glass rounded-2xl p-3 text-center">
+        <div className="glass rounded-2xl p-2.5 text-center">
           <Wheat className="mx-auto h-4 w-4 text-lime" />
-          <p className="mt-1 font-display text-xl text-ink">{det.carb_g}g</p>
-          <p className="text-[10px] uppercase tracking-wider text-ink-mute">Carbo</p>
+          <p className="mt-1 font-display text-lg text-ink leading-tight">{det.carb_g}g</p>
+          <p className="text-[9px] uppercase tracking-wider text-ink-mute">Carbo</p>
         </div>
-        <div className="glass rounded-2xl p-3 text-center">
+        <div className="glass rounded-2xl p-2.5 text-center">
+          <Droplet className="mx-auto h-4 w-4 text-lime" />
+          <p className="mt-1 font-display text-lg text-ink leading-tight">{det.gordura_g}g</p>
+          <p className="text-[9px] uppercase tracking-wider text-ink-mute">Gordura</p>
+        </div>
+        <div className="glass rounded-2xl p-2.5 text-center">
           <Flame className="mx-auto h-4 w-4 text-lime" />
-          <p className="mt-1 font-display text-xl text-ink">{det.kcal}</p>
-          <p className="text-[10px] uppercase tracking-wider text-ink-mute">kcal</p>
+          <p className="mt-1 font-display text-lg text-ink leading-tight">{det.kcal}</p>
+          <p className="text-[9px] uppercase tracking-wider text-ink-mute">kcal</p>
         </div>
       </div>
 
