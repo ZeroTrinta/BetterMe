@@ -20,15 +20,13 @@ export default function BottomNav() {
 
   return (
     <motion.nav
-      animate={{
-        y: sheetOpen ? 120 : 0,
-        opacity: sheetOpen ? 0 : 1,
-      }}
+      animate={{ y: sheetOpen ? 120 : 0, opacity: sheetOpen ? 0 : 1 }}
       transition={{ type: "spring", damping: 28, stiffness: 320 }}
-      className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 px-4 pb-safe"
+      className="fixed bottom-0 left-0 right-0 z-50 px-4"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
     >
-      <div className="glass-strong mx-2 mb-2 flex items-center justify-around rounded-full p-2 shadow-2xl">
+      <div className="mx-auto max-w-md">
+        <div className="glass-strong flex items-center justify-around rounded-full p-2 shadow-2xl">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -55,6 +53,7 @@ export default function BottomNav() {
             </Link>
           );
         })}
+        </div>
       </div>
     </motion.nav>
   );
