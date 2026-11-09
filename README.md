@@ -1,78 +1,55 @@
-# BetterMe v2 — Performance Hub
+# BetterMe v3 — Calistenia & Evolução
 
-Sistema pessoal de calistenia, nutrição e BI.
-Stack: **Next.js 14 (App Router) + TypeScript + Tailwind + Firebase Firestore + PWA**.
+Aplicativo Next.js 14 + TypeScript + Tailwind, exportado como site estático para GitHub Pages. O armazenamento principal opcional é a planilha privada do Google Sheets, com funcionamento local independente de servidor.
 
-Mantém compatibilidade com o Firebase já em produção (coleções `historico_alimentacao`, `historico_treino`, `compras_mercado`).
+## Recursos
 
-## Stack escolhida — por quê
+- Dashboard responsivo com progresso das 12 semanas, peso, treino e metas alimentares.
+- Quatro sessões de força com peso corporal e uma sessão de recuperação por semana.
+- Registro de cada série e indicação quando avançar de variação.
+- Alimentação diária (calorias, proteína, água e sono), peso, cintura, testes de flexão e barra.
+- Integração Google Sheets com OAuth; não precisa de Firebase ou Supabase.
+- Sem login, registros ficam no navegador e são enfileirados para envio após conectar a conta Google.
 
-- **Next.js export estático** → continua publicando no GitHub Pages, zero custo.
-- **PWA** (next-pwa) → instalável no celular, ícone na home, funciona offline.
-- **TypeScript** → tipos do domínio impedem bugs típicos de dieta/treino.
-- **Framer Motion** → animações fluidas (anel, timer, swipe, celebração).
-- **Recharts** → gráficos de BI já com tema dark.
-- **Tailwind + tokens próprios** → design system consistente com a identidade BetterMe (dark + neon lime).
+## Google Sheets
 
-## Estrutura
+Planilha: https://docs.google.com/spreadsheets/d/16CmKhI08ToWywfIybGsPqW_V5zQcClt0ajh-ELKfW08/edit
 
-```
-src/
-├── app/                  # rotas (App Router)
-│   ├── page.tsx          # Hub principal (dashboard)
-│   ├── dieta/            # Aba dieta
-│   ├── treino/           # Aba treino (A/B/C + timer)
-│   ├── mercado/          # Lista swipe + financeiro
-│   └── insights/         # BI / gráficos
-├── components/
-│   ├── ui/               # Card, ProgressRing, RestTimer, SwipeItem
-│   ├── layout/           # BottomNav, PageHeader
-│   └── charts/           # ConsistencyHeatmap
-├── lib/
-│   ├── firebase.ts       # init do app
-│   ├── firestore.ts      # repositório (todas as queries)
-│   ├── treinos.ts        # dados A/B/C
-│   └── utils.ts
-├── types/                # tipos de domínio
-└── styles/globals.css
-```
+Abas sincronizadas: Config, Diário de Treino, Sessões, Pesagens, Diário Alimentar e Medidas. O mapeamento de intervalos é fixo e pressupõe o modelo de 12 semanas da planilha original.
 
-## Setup local
+**Não publique a planilha.** O site em GitHub Pages é público, mas os dados somente são acessados pelo usuário com permissão OAuth. Os tokens ficam exclusivamente na memória do navegador.
+
+## Como conectar a conta Google (uma vez)
+
+1. Acesse https://console.cloud.google.com e crie ou escolha um projeto.
+2. Ative a Google Sheets API no projeto.
+3. Configure a tela de consentimento em Google Auth Platform. Para uso pessoal, mantenha o app em modo Testing e adicione seu e-mail como usuário de teste.
+4. Crie um OAuth Client ID do tipo **Web application**.
+5. Em Authorized JavaScript origins, cadastre `https://zerotrinta.github.io` e, para testes locais, `http://localhost:3000`.
+6. Copie o **Client ID** público, nunca o Client Secret, e cole no BetterMe em **Ajustes**.
+7. Clique em Conectar ao Google, escolha a conta com acesso à planilha e autorize o escopo de planilhas.
+
+O token temporário não fica salvo. O aplicativo pode pedir reconexão ao atualizar a página. Se o app estiver em modo Testing, pode aparecer aviso de app não verificado; utilize somente um projeto seu.
+
+## Desenvolvimento
 
 ```bash
-npm install
-cp .env.example .env.local   # já preenchi com seu projeto Firebase
+npm ci
 npm run dev
 ```
 
-Abrir em `http://localhost:3000`.
+Abra http://localhost:3000/BetterMe/ (basePath do GitHub Pages).
 
-## Deploy no GitHub Pages
+## Publicação
 
-1. Crie um repositório (ex: `BetterMe`) e suba o código.
-2. Vá em **Settings → Pages → Source: GitHub Actions**.
-3. Em **Settings → Secrets and variables → Actions**, adicione os 6 secrets:
-   - `NEXT_PUBLIC_FIREBASE_API_KEY`
-   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
-   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-   - `NEXT_PUBLIC_FIREBASE_APP_ID`
-4. Push na branch `main` → o workflow `.github/workflows/deploy.yml` builda e publica automaticamente.
+O workflow em `.github/workflows/deploy.yml` publica automaticamente os commits em `main`. Configure Settings > Pages > Source: GitHub Actions.
 
-> Se o repo for `usuario/BetterMe` e não um `usuario.github.io`, descomente `basePath` e `assetPrefix` em `next.config.js`.
+URL esperada após publicar: https://zerotrinta.github.io/BetterMe/
 
-## Domínio das coleções (Firestore)
+## Privacidade
 
-| Coleção | ID do doc | Campos |
-|---|---|---|
-| `historico_alimentacao` | `YYYY-MM-DD` | `cafe_manha`, `almoco`, `pre_treino`, `jantar` (bool) + `data` (string) |
-| `historico_treino` | `YYYY-MM-DD_X` | `data`, `tipo_treino` (`A`\|`B`\|`C`), `registrado_em` |
-| `compras_mercado` | auto | `data`, `mes` (`YYYY-MM`), `valor_pago`, `descricao` |
+No modo local, os registros usam localStorage deste dispositivo. Não utilize em computador compartilhado e não limpe os dados antes de sincronizar. Não há nenhuma senha, segredo, refresh token, chave de serviço ou conteúdo privado da planilha no repositório.
 
-## Próximos passos sugeridos (Roadmap)
+## Aviso
 
-- [ ] **Firebase Auth** (Google Sign-In) — hoje os dados são compartilhados publicamente
-- [ ] **Regras de segurança** Firestore por `request.auth.uid`
-- [ ] Dashboard de volume semanal (séries × reps)
-- [ ] Notificações push de descanso ativo
+O plano é educativo e adaptável. Evite exercícios que causem dor, não treine todos os sets até a falha, e ajuste calorias com base na tendência de peso/cintura e orientação profissional quando necessário.
