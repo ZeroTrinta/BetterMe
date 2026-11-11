@@ -105,6 +105,11 @@ export async function readSheet(token:string):Promise<FitnessData>{
     const value=config[0][0];
     if(typeof value==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(value)) data.startDate=value;
     else if(typeof value==="string"&&/^\d{2}\/\d{2}\/\d{4}$/.test(value)){const parts=value.split("/");data.startDate=parts[2]+"-"+parts[1]+"-"+parts[0];}
+    else if(typeof value==="number"&&Number.isFinite(value)){
+      // UNFORMATTED_VALUE returns Google Sheets dates as serial numbers.
+      const date=new Date(Date.UTC(1899,11,30)+Math.floor(value)*86400000);
+      if(!Number.isNaN(date.getTime()))data.startDate=date.toISOString().slice(0,10);
+    }
   }
   (exercises||[]).forEach((row,i)=>{
     const week=Math.floor(i/20)+1,slot=i%20,day=STRENGTH_DAYS[Math.floor(slot/5)],index=slot%5;
