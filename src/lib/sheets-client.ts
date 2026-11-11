@@ -2,12 +2,43 @@ import { DAYS, FULL_DAYS, STRENGTH_DAYS, SHEET_ID, DEFAULT_START, EMPTY_DATA, Fi
 
 export type SheetWrite = { range:string; values:(string|number|null)[][] };
 type Response = { valueRanges?:Array<{range:string;values?:unknown[][]}> };
-type Token = { access_token?:string;error?:string;error_description?:string };
+type Token = { access_token?:string;expires_in?:number;error?:string;error_description?:string };
 type GoogleClient = { requestAccessToken:(options?:{prompt?:string})=>void };
 type Gsi = { accounts:{oauth2:{initTokenClient:(options:{client_id:string;scope:string;callback:(token:Token)=>void})=>GoogleClient}} };
 declare global { interface Window { google?:Gsi } }
 
 const SCOPE="https://www.googleapis.com/auth/spreadsheets";
+const SESSION_KEY="betterme:google-access-session-v1";
+type StoredSession={ token:string; expiresAt:number; clientId:string };
+/**
+ * Keep only a short-lived access token in sessionStorage. This survives same-tab
+ * refreshes but never stores a refresh token or Google client secret.
+ */
+export function getCachedGoogleToken(clientId:string):string|null{
+  if(typeof window==="undefined" || !clientId)return null;
+  try{
+    const raw=sessionStorage.getItem(SESSION_KEY);
+    if(!raw)return null;
+    const state=JSON.parse(raw) as StoredSession;
+    if(state.clientId!==clientId.trim() || state.expiresAt <= Date.now()+60_000){
+      sessionStorage.removeItem(SESSION_KEY);return null;
+    }
+    return state.token;
+  }catch{return null}
+}
+export function clearCachedGoogleToken():void{
+  if(typeof window!=="undefined")try{sessionStorage.removeItem(SESSION_KEY)}catch{}
+}
+function cacheGoogleToken(clientId:string,token:Token):void{
+  if(!token.access_token || typeof window==="undefined")return;
+  const seconds=Math.max(60,Math.min(token.expires_in||3500,3600));
+  const state:StoredSession={
+    token:token.access_token,
+    clientId:clientId.trim(),
+    expiresAt:Date.now()+seconds*1000
+  };
+  try{sessionStorage.setItem(SESSION_KEY,JSON.stringify(state))}catch{}
+}
 const ranges=[
  "'Config'!B2",
  "'Diário de Treino'!A2:J241",
@@ -37,9 +68,14 @@ export function authorizeGoogle(clientId:string):Promise<string>{
     try{
       const client=window.google.accounts.oauth2.initTokenClient({
         client_id:clientId.trim(),scope:SCOPE,
-        callback:res=>res.access_token?resolve(res.access_token):reject(new Error(res.error_description||res.error||"Permissão não concedida."))
+        callback:res=>{
+          if(res.access_token){cacheGoogleToken(clientId,res);resolve(res.access_token)}
+          else reject(new Error(res.error_description||res.error||"Permissão não concedida."))
+        }
       });
-      client.requestAccessToken({prompt:"consent"});
+      // Empty prompt preserves previously approved consent. Google may still
+      // ask to choose an account or reauthorize when necessary.
+      client.requestAccessToken({prompt:""});
     }catch(e){reject(e)}
   });
 }
