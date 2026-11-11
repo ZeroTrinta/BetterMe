@@ -15,11 +15,13 @@ import {
   exerciseKey, dayKey, weekKey, plannedSets, exerciseRow, sessionRow, dailyRow,
   measureRow, weekForDate, currentDay, dateFor, brDate, suggestion, SHEET_ID
 } from "@/lib/fitness-plan";
-import { authorizeGoogle, loadGoogleLibrary, readSheet, writeSheet, SheetWrite, parsePending } from "@/lib/sheets-client";
+import { authorizeGoogle, loadGoogleLibrary, readSheet, writeSheet, SheetWrite, parsePending, getCachedGoogleToken, clearCachedGoogleToken } from "@/lib/sheets-client";
+import CountdownTimer from "@/components/betterme/CountdownTimer";
 
 const DATA_KEY="betterme:fitness-v3";
 const PENDING_KEY="betterme:pending-v3";
 const CLIENT_KEY="betterme:google-client-id";
+const AUTHORIZED_KEY="betterme:google-authorized-before";
 const GOOGLE_SHEETS="https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/edit";
 const ENV_CLIENT=process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID||"";
 const TABS:{id:View;href:string;label:string;icon:typeof Activity}[]=[
@@ -57,24 +59,44 @@ export default function BetterMeApp({tab}:{tab:View}){
   const [draftFood,setDraftFood]=useState<Nutrition>({});
   const [draftWeight,setDraftWeight]=useState<number|undefined>();
   const [draftMeasure,setDraftMeasure]=useState<Measure>({});
-  const [restSeconds,setRestSeconds]=useState(0);
-  const [restActive,setRestActive]=useState(false);
 
   useEffect(()=>{
+    let cancelled=false;
+    let savedPending:Record<string,(string|number|null)[][]>={};
+    let savedClient=ENV_CLIENT;
     try{
       const prev=localStorage.getItem(DATA_KEY);
       if(prev){const parsed=JSON.parse(prev);setData({...EMPTY_DATA,...parsed});}
-      setPending(parsePending(localStorage.getItem(PENDING_KEY)));
-      setClientId(localStorage.getItem(CLIENT_KEY)||ENV_CLIENT);
+      savedPending=parsePending(localStorage.getItem(PENDING_KEY));
+      savedClient=localStorage.getItem(CLIENT_KEY)||ENV_CLIENT;
+      setPending(savedPending);
+      setClientId(savedClient);
     }catch{}
     setReady(true);
     loadGoogleLibrary().catch(()=>{});
+    // A temporary access token is kept in sessionStorage, surviving a tab refresh.
+    // All pending offline writes are uploaded BEFORE the remote snapshot is read.
+    const cached=getCachedGoogleToken(savedClient);
+    if(cached){
+      setSyncing(true);
+      (async()=>{
+        const queued=Object.entries(savedPending).map(([range,values])=>({range,values}));
+        if(queued.length)await writeSheet(cached,queued);
+        const remote=await readSheet(cached);
+        if(cancelled)return;
+        setToken(cached);setData(remote);setPending({});
+      })().catch(error=>{
+        if(cancelled)return;
+        clearCachedGoogleToken();
+        setToken(null);
+        setToast(error instanceof Error?error.message:"Não foi possível restaurar a sessão do Google.");
+      }).finally(()=>{if(!cancelled)setSyncing(false)});
+    }
+    return ()=>{cancelled=true};
   },[]);
   useEffect(()=>{if(!ready)return;localStorage.setItem(DATA_KEY,JSON.stringify(data));},[data,ready]);
   useEffect(()=>{if(!ready)return;localStorage.setItem(PENDING_KEY,JSON.stringify(pending));},[pending,ready]);
   useEffect(()=>{if(!ready)return;localStorage.setItem(CLIENT_KEY,clientId);},[clientId,ready]);
-  useEffect(()=>{if(!restActive||restSeconds<=0)return;const t=window.setInterval(()=>setRestSeconds(s=>Math.max(0,s-1)),1000);return()=>window.clearInterval(t)},[restActive,restSeconds]);
-  useEffect(()=>{if(restSeconds===0)setRestActive(false)},[restSeconds]);
   useEffect(()=>{
     if(ready){setSelectedWeek(weekForDate(data.startDate));setTrainingDay(currentDay());const today=new Date().getDay();setFoodDay(FULL_DAYS[today===0?6:today-1])}
   },[ready,data.startDate]);
@@ -90,15 +112,38 @@ export default function BetterMeApp({tab}:{tab:View}){
     if(!writes.length)return;
     const entries=Object.fromEntries(writes.map(w=>[w.range,w.values]));
     setPending(prev=>({...prev,...entries}));
-    if(!token){setToast("Salvo neste dispositivo. Conecte o Google para sincronizar.");return;}
+    // Saving is a user gesture, so a previously authorized Google account can
+    // reauthorize here when the short-lived token has expired.
+    const usableToken=token && getCachedGoogleToken(clientId) ? token : null;
+    const canReconnect=!!clientId && typeof window!=="undefined"
+      && !!window.google?.accounts?.oauth2
+      && localStorage.getItem(AUTHORIZED_KEY)==="1";
+    if(!usableToken && !canReconnect){
+      setToast("Salvo neste dispositivo. Conecte o Google para sincronizar.");
+      return;
+    }
     setSyncing(true);
     try{
-      await writeSheet(token,writes);
-      setPending(prev=>{const next={...prev};for(const [key,val] of Object.entries(entries))if(JSON.stringify(next[key])===JSON.stringify(val))delete next[key];return next});
+      const key=usableToken||await authorizeGoogle(clientId);
+      if(!usableToken)setToken(key);
+      // On reconnect, upload older offline changes as well as this save.
+      const sending=usableToken?entries:{...pending,...entries};
+      await writeSheet(key,Object.entries(sending).map(([range,values])=>({range,values})));
+      setPending(prev=>{
+        const next={...prev};
+        for(const [range,values] of Object.entries(sending)){
+          if(JSON.stringify(next[range])===JSON.stringify(values))delete next[range];
+        }
+        return next;
+      });
       setToast("Alterações sincronizadas com o Google Sheets.");
-    }catch(e){setToast(e instanceof Error?e.message:"Falha ao sincronizar. Registro salvo localmente.");}
-    finally{setSyncing(false)}
-  },[token]);
+    }catch(e){
+      if(e instanceof Error && /401|expirou|UNAUTHENTICATED/i.test(e.message)){
+        clearCachedGoogleToken();setToken(null);
+        setToast("O acesso Google expirou. Registro salvo neste aparelho; uma autorização pode ser necessária na próxima gravação.");
+      }else setToast(e instanceof Error?e.message:"Falha ao sincronizar. Registro salvo localmente.");
+    }finally{setSyncing(false)}
+  },[token,clientId,pending]);
 
   const connect=async()=>{
     if(!clientId.trim()){setToast("Configure o ID de cliente OAuth no Google Cloud primeiro.");return;}
@@ -110,7 +155,7 @@ export default function BetterMeApp({tab}:{tab:View}){
       const writes=Object.entries(pending).map(([range,values])=>({range,values}));
       if(writes.length)await writeSheet(key,writes);
       const remote=await readSheet(key);
-      setData(remote);setPending({});setToast("Planilha conectada e sincronizada.");
+      setData(remote);setPending({});localStorage.setItem(AUTHORIZED_KEY,"1");setToast("Planilha conectada e sincronizada.");
     }catch(e){setToast(e instanceof Error?e.message:"Não foi possível conectar ao Google.");}
     finally{setSyncing(false)}
   };
@@ -120,7 +165,10 @@ export default function BetterMeApp({tab}:{tab:View}){
     try{
       if(Object.keys(pending).length){await writeSheet(token,Object.entries(pending).map(([range,values])=>({range,values})));setPending({})}
       setData(await readSheet(token));setToast("Dados atualizados do Google Sheets.");
-    }catch(e){setToast(e instanceof Error?e.message:"Não foi possível atualizar.");}
+    }catch(e){
+      if(e instanceof Error && /401|expirou|UNAUTHENTICATED/i.test(e.message)){clearCachedGoogleToken();setToken(null)}
+      setToast(e instanceof Error?e.message:"Não foi possível atualizar.");
+    }
     finally{setSyncing(false)}
   };
   const currentWeek=weekForDate(data.startDate);
@@ -265,10 +313,22 @@ export default function BetterMeApp({tab}:{tab:View}){
           {trainingDay==="Quarta"?<Card className="p-6"><Footprints className="mb-4 text-lime" size={32}/><h3 className="text-xl font-semibold">Caminhada e mobilidade</h3><p className="mt-2 text-sm text-ink-dim">Faça {phase.minutes} minutos de caminhada e aproximadamente 10 minutos de mobilidade de ombros, quadril e tornozelos. Mantenha uma intensidade confortável.</p><button onClick={saveTraining} className={btn+" mt-6"}><CheckCircle2 size={17}/> Marcar recuperação como concluída</button></Card>:<>
             <div className="space-y-3">{currentExercises.map((ex,index)=>{const day=trainingDay as StrengthDay,sets=getSets(day,index),count=plannedSets(selectedWeek,ex),tip=suggestion(selectedWeek,ex,sets);return <Card className="p-4 sm:p-5" key={ex.name}><div className="flex flex-wrap items-start gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lime/10 font-bold text-lime">{String(index+1).padStart(2,"0")}</div><div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-wider text-lime">{ex.focus}</p><h3 className="mt-1 text-base font-semibold">{ex.name}</h3><p className="mt-1 text-xs text-ink-dim">{count} séries × {ex.min}–{ex.max} {ex.seconds?"segundos":"repetições"}</p></div></div>
               <div className="mt-4 grid grid-cols-4 gap-2">{Array.from({length:count},(_,slot)=><label key={slot} className="block"><span className="mb-1 block text-center text-[10px] text-ink-mute">Série {slot+1}</span><input type="number" inputMode="numeric" min="0" step="1" className={field+" text-center font-semibold"} placeholder="—" value={sets[slot]||""} onChange={event=>setSets(day,index,slot,event.target.value===""?undefined:Number(event.target.value))}/></label>)}</div>
+              {ex.seconds && <CountdownTimer
+                id={"exercise-"+selectedWeek+"-"+day+"-"+index}
+                label="Cronômetro da série"
+                initialSeconds={ex.min}
+                presets={ex.min===ex.max?[ex.min]:[ex.min,ex.max]}
+                canRecord={sets.filter(value=>value>0).length<count}
+                recordLabel="Registrar tempo na próxima série"
+                onRecord={(seconds)=>{
+                  const slot=Array.from({length:count},(_,i)=>i).find(i=>!sets[i]||sets[i]<=0);
+                  if(slot!==undefined)setSets(day,index,slot,seconds);
+                }}
+              />}
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2"><span className={"rounded-full px-2.5 py-1 text-[11px] font-medium "+(tip.tone==="good"?"bg-lime/10 text-lime":tip.tone==="warning"?"bg-amber-400/10 text-amber-300":"bg-white/5 text-ink-dim")}>{tip.text}</span><span className="text-[11px] text-ink-mute">Alternativa: {ex.alternative}</span></div>
               <p className="mt-2 text-[11px] text-ink-mute">{ex.tip}</p>
             </Card>})}</div>
-            <Card className="mt-4 p-4 sm:p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold">Descanso entre séries</p><p className="mt-1 text-xs text-ink-dim">90–150 s nos exercícios principais.</p></div><div className="flex items-center gap-2"><span className="font-mono text-2xl font-bold text-lime">{String(Math.floor(restSeconds/60)).padStart(2,"0")}:{String(restSeconds%60).padStart(2,"0")}</span><button className="rounded-xl border border-white/10 px-3 py-2 text-xs" onClick={()=>{setRestSeconds(90);setRestActive(true)}}>90s</button><button className="rounded-xl border border-white/10 px-3 py-2 text-xs" onClick={()=>setRestActive(!restActive)}>{restActive?"Pausar":"Iniciar"}</button></div></div></Card>
+            <Card className="mt-4 p-4 sm:p-5"><h3 className="font-semibold">Descanso entre séries</h3><p className="mt-1 text-xs text-ink-dim">Selecione 60, 90, 120 ou 150 segundos. O contador segue funcionando com o celular bloqueado e ao trocar de página.</p><CountdownTimer id="rest-global" label="Timer de descanso" initialSeconds={90} presets={[60,90,120,150]}/></Card>
             <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-lime/15 bg-lime/[.045] p-4"><p className="max-w-md text-xs leading-relaxed text-ink-dim">A planilha sugerirá progredir quando todas as séries planejadas chegarem ao máximo com boa técnica. Não é obrigação chegar à falha.</p><button onClick={saveTraining} className={btn+" shrink-0"} disabled={syncing}><Save size={17}/> Salvar treino</button></div>
           </>}
           <p className="mt-5 text-xs text-ink-mute">Se sentir dor aguda nas articulações, interrompa o movimento. Não use cadeiras instáveis ou apoios improvisados para barras.</p>
@@ -299,11 +359,11 @@ export default function BetterMeApp({tab}:{tab:View}){
 
         {tab==="configuracoes"&&<>
           <PageIntro tag="Sistema" title="Seus dados. Seu controle." subtitle="Use localmente ou conecte sua conta Google para ler e escrever na planilha privada."/>
-          <Card className="mb-4 overflow-hidden p-5 sm:p-7"><div className="flex items-start gap-3"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-lime/10 text-lime">{token?<Cloud size={22}/>:<LockKeyhole size={22}/>}</span><div><h2 className="text-xl font-semibold">Google Sheets</h2><p className="mt-1 text-xs leading-relaxed text-ink-dim">{token?"Conexão ativa nesta sessão. Alterações salvas pelo site são enviadas à planilha.":"A planilha permanece privada. É necessário autorizar o acesso pelo Google OAuth uma vez por sessão."}</p></div></div>
+          <Card className="mb-4 overflow-hidden p-5 sm:p-7"><div className="flex items-start gap-3"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-lime/10 text-lime">{token?<Cloud size={22}/>:<LockKeyhole size={22}/>}</span><div><h2 className="text-xl font-semibold">Google Sheets</h2><p className="mt-1 text-xs leading-relaxed text-ink-dim">{token?"Conexão ativa nesta sessão. Alterações salvas pelo site são enviadas à planilha.":"A planilha fica privada. A conexão é restaurada automaticamente quando a autorização temporária ainda está válida. Depois de expirar, o Google pode pedir nova autorização."}</p></div></div>
             <div className="mt-5 space-y-3"><label className="block"><span className="mb-1.5 block text-xs text-ink-dim">ID do cliente OAuth (tipo: aplicativo Web)</span><input value={clientId} onChange={e=>setClientId(e.target.value)} className={field} placeholder="000000000000-...apps.googleusercontent.com"/></label>
               <p className="text-[11px] leading-relaxed text-ink-mute">Não insira senha, chave privada nem segredo do cliente. Este campo aceita apenas o Client ID público.</p>
               <div className="flex flex-wrap gap-2"><button onClick={()=>void connect()} disabled={syncing||!clientId.trim()} className={btn}>{syncing?<Loader2 size={16} className="animate-spin"/>:<Link2 size={16}/>} {token?"Reconectar":"Conectar ao Google"}</button><button onClick={()=>void refresh()} disabled={!token||syncing} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm text-ink-dim disabled:opacity-40"><RefreshCw size={16}/> Atualizar</button><a href={GOOGLE_SHEETS} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm text-ink-dim"><ExternalLink size={16}/> Abrir planilha</a></div>
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.03] p-3 text-xs text-ink-dim"><ShieldCheck size={16} className="shrink-0 text-lime"/><span>{Object.keys(pending).length} alterações aguardando sincronização. O token de acesso fica apenas na memória do navegador.</span></div>
+              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.03] p-3 text-xs text-ink-dim"><ShieldCheck size={16} className="shrink-0 text-lime"/><span>{Object.keys(pending).length} alterações aguardando sincronização. O token temporário fica somente nesta aba (sessionStorage). Ao expirar, os dados continuam salvos offline até a próxima autorização.</span></div>
             </div>
           </Card>
           <Card className="mb-4 p-5 sm:p-7"><SectionTitle eyebrow="Configuração inicial" title="Ative o acesso Google"/><ol className="list-decimal space-y-3 pl-5 text-sm leading-relaxed text-ink-dim"><li>Abra o <a className="text-lime underline" href="https://console.cloud.google.com/apis/library/sheets.googleapis.com" target="_blank" rel="noreferrer">Google Cloud Console</a>, selecione um projeto e habilite a Google Sheets API.</li><li>Configure a tela de consentimento OAuth. Em modo de teste, adicione sua conta Google como usuário de teste.</li><li>Crie um ID de cliente OAuth para <strong className="text-white">Aplicativo da Web</strong> com origem JavaScript autorizada <code className="text-lime">https://zerotrinta.github.io</code>. Para testes locais, adicione também <code className="text-lime">http://localhost:3000</code>.</li><li>Cole o Client ID acima, conecte com a conta que tem acesso à planilha e confirme as permissões.</li></ol><p className="mt-4 text-xs leading-relaxed text-ink-mute">Nunca publique a planilha para “qualquer pessoa com o link”. O site não precisa de Supabase, Firebase, senha do Google nem chave de serviço.</p></Card>
