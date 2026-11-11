@@ -21,6 +21,7 @@ import CountdownTimer from "@/components/betterme/CountdownTimer";
 const DATA_KEY="betterme:fitness-v3";
 const PENDING_KEY="betterme:pending-v3";
 const CLIENT_KEY="betterme:google-client-id";
+const AUTHORIZED_KEY="betterme:google-authorized-before";
 const GOOGLE_SHEETS="https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/edit";
 const ENV_CLIENT=process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID||"";
 const TABS:{id:View;href:string;label:string;icon:typeof Activity}[]=[
@@ -111,20 +112,38 @@ export default function BetterMeApp({tab}:{tab:View}){
     if(!writes.length)return;
     const entries=Object.fromEntries(writes.map(w=>[w.range,w.values]));
     setPending(prev=>({...prev,...entries}));
-    if(!token){setToast("Salvo neste dispositivo. Conecte o Google para sincronizar.");return;}
+    // Saving is a user gesture, so a previously authorized Google account can
+    // reauthorize here when the short-lived token has expired.
+    const usableToken=token && getCachedGoogleToken(clientId) ? token : null;
+    const canReconnect=!!clientId && typeof window!=="undefined"
+      && !!window.google?.accounts?.oauth2
+      && localStorage.getItem(AUTHORIZED_KEY)==="1";
+    if(!usableToken && !canReconnect){
+      setToast("Salvo neste dispositivo. Conecte o Google para sincronizar.");
+      return;
+    }
     setSyncing(true);
     try{
-      await writeSheet(token,writes);
-      setPending(prev=>{const next={...prev};for(const [key,val] of Object.entries(entries))if(JSON.stringify(next[key])===JSON.stringify(val))delete next[key];return next});
+      const key=usableToken||await authorizeGoogle(clientId);
+      if(!usableToken)setToken(key);
+      // On reconnect, upload older offline changes as well as this save.
+      const sending=usableToken?entries:{...pending,...entries};
+      await writeSheet(key,Object.entries(sending).map(([range,values])=>({range,values})));
+      setPending(prev=>{
+        const next={...prev};
+        for(const [range,values] of Object.entries(sending)){
+          if(JSON.stringify(next[range])===JSON.stringify(values))delete next[range];
+        }
+        return next;
+      });
       setToast("Alterações sincronizadas com o Google Sheets.");
     }catch(e){
       if(e instanceof Error && /401|expirou|UNAUTHENTICATED/i.test(e.message)){
         clearCachedGoogleToken();setToken(null);
-        setToast("A autorização do Google expirou. Seus registros estão salvos neste aparelho; conecte novamente para sincronizar.");
+        setToast("O acesso Google expirou. Registro salvo neste aparelho; uma autorização pode ser necessária na próxima gravação.");
       }else setToast(e instanceof Error?e.message:"Falha ao sincronizar. Registro salvo localmente.");
-    }
-    finally{setSyncing(false)}
-  },[token]);
+    }finally{setSyncing(false)}
+  },[token,clientId,pending]);
 
   const connect=async()=>{
     if(!clientId.trim()){setToast("Configure o ID de cliente OAuth no Google Cloud primeiro.");return;}
@@ -136,7 +155,7 @@ export default function BetterMeApp({tab}:{tab:View}){
       const writes=Object.entries(pending).map(([range,values])=>({range,values}));
       if(writes.length)await writeSheet(key,writes);
       const remote=await readSheet(key);
-      setData(remote);setPending({});setToast("Planilha conectada e sincronizada.");
+      setData(remote);setPending({});localStorage.setItem(AUTHORIZED_KEY,"1");setToast("Planilha conectada e sincronizada.");
     }catch(e){setToast(e instanceof Error?e.message:"Não foi possível conectar ao Google.");}
     finally{setSyncing(false)}
   };
