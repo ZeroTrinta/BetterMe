@@ -235,6 +235,8 @@ function saveEntry(payload) {
       ];
       const meals = bettermeMealIds_(bettermeSheet_(book,"Diário Alimentar").getRange(row,11).getValue());
       const base = bettermeMealTotals_(meals);
+      if (values[0] === "" && base[0] > 0) values[0] = base[0];
+      if (values[1] === "" && base[1] > 0) values[1] = base[1];
       if ((values[0]!=="" && values[0]<base[0]) ||
           (values[1]!=="" && values[1]<base[1])) {
         throw new Error("Os totais não podem ser menores que as refeições já marcadas.");
