@@ -1,7 +1,7 @@
 name: Verify Google Apps Script BetterMe
 on:
   push:
-    branches: [feature/apps-script-betterme]
+    branches: [main, feat/click-to-log-meals]
     paths:
       - 'apps-script/**'
       - '.github/workflows/validate-apps-script.yml'
