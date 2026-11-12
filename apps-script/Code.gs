@@ -10,6 +10,7 @@ const BETTERME_DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 const BETTERME_ALL_DAYS = BETTERME_DAYS.concat(["Sábado", "Domingo"]);
 const BETTERME_STRENGTH = ["Segunda", "Terça", "Quinta", "Sexta"];
 const BETTERME_WEEK_CAPS = [2,3,3,2,4,4,4,2,4,4,4,3];
+const BETTERME_BASE_SETS = {Segunda:[4,4,3,2,3],Terça:[3,3,3,3,3],Quinta:[4,3,2,3,3],Sexta:[4,3,3,3,3]};
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile("Index")
@@ -45,7 +46,7 @@ function bettermeNumber_(v, min, max, decimal) {
 function bettermeDate_(value) {
   let result;
   if (value instanceof Date && !isNaN(value.getTime())) {
-    result = Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    result = Utilities.formatDate(value, "America/Sao_Paulo", "yyyy-MM-dd");
   } else if (typeof value === "number") {
     result = Utilities.formatDate(new Date(Date.UTC(1899,11,30) + value * 86400000), "UTC", "yyyy-MM-dd");
   } else if (typeof value === "string") {
@@ -81,7 +82,7 @@ function getSnapshot() {
     weights: {},
     nutrition: {},
     measures: {},
-    syncedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")
+    syncedAt: Utilities.formatDate(new Date(), "America/Sao_Paulo", "dd/MM/yyyy HH:mm")
   };
 
   for (let i = 0; i < workoutRows.length; i++) {
@@ -157,7 +158,7 @@ function saveEntry(payload) {
         }
         const vals = entry.values.map(v => bettermeNumber_(v,0,900,false));
         const row = 2 + (week - 1) * 20 + dayOffset * 5 + i;
-        const planned = Math.min(BETTERME_WEEK_CAPS[week-1], Number([4,4,3,2,3][i]));
+        const planned = Math.min(BETTERME_WEEK_CAPS[week-1], BETTERME_BASE_SETS[payload.day][i]);
         if (vals.slice(0,planned).filter(v => v !== "" && v > 0).length < planned) allDone = false;
         bettermeSheet_(book, "Diário de Treino").getRange(row,7,1,4).setValues([vals]);
         changed += 4;
@@ -192,7 +193,9 @@ function saveEntry(payload) {
       const waist = bettermeNumber_(payload.waist,40,250,true);
       const pullups = bettermeNumber_(payload.pullups,0,500,false);
       const pushups = bettermeNumber_(payload.pushups,0,500,false);
-      const note = String(payload.note || "").trim().slice(0,400);
+      const rawNote = String(payload.note || "").trim().slice(0,400);
+      // Never let an arbitrary note execute as a spreadsheet formula.
+      const note = /^[=+\-@]/.test(rawNote) ? "\u0027" + rawNote : rawNote;
       const measures = bettermeSheet_(book, "Medidas");
       measures.getRange(row,4).setValue(waist);
       measures.getRange(row,6,1,2).setValues([[pullups,pushups]]);
