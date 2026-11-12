@@ -1,0 +1,21 @@
+name: Verify Google Apps Script BetterMe
+on:
+  push:
+    branches: [feature/apps-script-betterme]
+    paths:
+      - 'apps-script/**'
+      - '.github/workflows/validate-apps-script.yml'
+  pull_request:
+    paths:
+      - 'apps-script/**'
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate Apps Script and UI
+        run: node apps-script/test.mjs
