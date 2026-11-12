@@ -504,15 +504,15 @@
   function saveWorkout(){
     const day=ui.train,week=ui.week,ex=EX[day];
     if(!ex){toast("Selecione um treino de força.");return}
-    const entries=ex.map((item,i)=>{
-      const sets=draftSets(day,i),values=[0,1,2,3].map(slot=>{
-        const n=sets[slot];
-        return n===null||n===undefined||n===""?"":Number(n);
+    try {
+      const entries=ex.map((item,i)=>{
+        const sets=draftSets(day,i),values=[0,1,2,3].map(slot=>{
+          const n=sets[slot];
+          return n===null||n===undefined||n===""?"":Number(n);
+        });
+        if(values.some(n=>n!==""&&(!Number.isInteger(n)||n<0||n>900)))throw Error("Séries precisam ter números inteiros válidos.");
+        return {index:i,values};
       });
-      if(values.some(n=>n!==""&&(!Number.isInteger(n)||n<0||n>900)))throw Error("Séries precisam ter números inteiros válidos.");
-      return {index:i,values};
-    });
-    try{
       queueSave({type:"workout",week,day,entries});
       ex.forEach((item,i)=>delete ui.draft[exKey(week,day,i)]);
     }catch(e){toast(e.message)}
