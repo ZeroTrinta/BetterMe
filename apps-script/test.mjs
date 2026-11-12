@@ -52,7 +52,7 @@ const sets=[{index:0,values:[10,10,10,""]},{index:1,values:[10,10,10,""]},
 const saved=backend.saveEntry({type:"workout",week:5,day:"Terça",entries:sets});
 assert(saved.ok);
 assert(writes.some(w=>w.name==="Sessões"&&w.value==="Concluído"),"3 Tuesday sets complete the week-five workout");
-assert(writes.some(w=>w.name==="Diário de Treino"&&w.where==="107:7:1:4"),"Exercise row mapping");
+assert(writes.some(w=>w.name==="Diário de Treino"&&w.where==="87:7:1:4"),"Exercise row mapping");
 assert.throws(()=>backend.saveEntry({type:"recovery",week:1,day:"Terça"}),/Recuperação/);
 backend.saveEntry({type:"measure",week:1,waist:89,pullups:6,pushups:20,note:"=HYPERLINK(1)"});
 assert(writes.some(w=>w.name==="Medidas"&&w.where==="2:11"&&String(w.value).startsWith("'")),"Notes must not become sheet formulas");
