@@ -20,15 +20,24 @@ const fake={
   Medidas:{"D2:K13":blanks(12,8)}
 };
 const cells=new Map();
+const perCell=new Map();
 const book = {getSheetByName(name){
   if (!fake[name]) return null;
   return { getRange(...args){
     const where=args.join(":"),address=name+":"+where;
+    const numericRange=typeof args[0]==="number";
+    const [row,col,rows=1,cols=1]=args;
+    function rawValue(r,c){return perCell.get(name+":"+r+":"+c)??""}
+    function setValuesAt(values){
+      for(let r=0;r<values.length;r++)for(let c=0;c<values[r].length;c++){
+        perCell.set(name+":"+(row+r)+":"+(col+c),values[r][c]);
+      }
+    }
     return {
-      getValue(){return cells.has(address)?cells.get(address):fake[name][where]??""},
-      getValues(){return cells.has(address)?cells.get(address):fake[name][where]??blanks(1,Math.max(1,args[3]||1))},
-      setValue(v){cells.set(address,v);writes.push({name,where,value:v});return this},
-      setValues(values){cells.set(address,values);writes.push({name,where,value:values});return this}
+      getValue(){return numericRange?rawValue(row,col):(cells.has(address)?cells.get(address):fake[name][where]??"")},
+      getValues(){return numericRange?Array.from({length:rows},(_,r)=>Array.from({length:cols},(_,c)=>rawValue(row+r,col+c))):(cells.has(address)?cells.get(address):fake[name][where]??blanks(1,Math.max(1,args[3]||1)))},
+      setValue(v){if(numericRange)setValuesAt([[v]]);cells.set(address,v);writes.push({name,where,value:v});return this},
+      setValues(values){if(numericRange)setValuesAt(values);cells.set(address,values);writes.push({name,where,value:values});return this}
     };
   }};
 }};
