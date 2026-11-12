@@ -11,6 +11,7 @@ const BETTERME_ALL_DAYS = BETTERME_DAYS.concat(["Sábado", "Domingo"]);
 const BETTERME_STRENGTH = ["Segunda", "Terça", "Quinta", "Sexta"];
 const BETTERME_WEEK_CAPS = [2,3,3,2,4,4,4,2,4,4,4,3];
 const BETTERME_BASE_SETS = {Segunda:[4,4,3,2,3],Terça:[3,3,3,3,3],Quinta:[4,3,2,3,3],Sexta:[4,3,3,3,3]};
+const BETTERME_MEAL_VALUES = [[450,25],[720,62],[335,20],[640,50],[270,14]];
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile("Index")
@@ -64,6 +65,25 @@ function bettermeKey_(week, day) {
 function bettermeSafeNumber_(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
+/** Parse the reserved K-column meal indices; unknown or corrupt data is ignored. */
+function bettermeMealIds_(raw) {
+  let ids = raw;
+  if (typeof raw === "string") {
+    if (!raw.trim()) return [];
+    try { ids = JSON.parse(raw); } catch (_) { return []; }
+  }
+  if (!Array.isArray(ids)) return [];
+  return Array.from(new Set(ids.filter(v =>
+    Number.isInteger(v) && v >= 0 && v < BETTERME_MEAL_VALUES.length
+  ))).sort((a,b)=>a-b);
+}
+function bettermeMealTotals_(ids) {
+  return ids.reduce((acc,index)=>{
+    acc[0] += BETTERME_MEAL_VALUES[index][0];
+    acc[1] += BETTERME_MEAL_VALUES[index][1];
+    return acc;
+  },[0,0]);
+}
 
 /** Returns only user-editable data, not formulas or personal Google credentials. */
 function getSnapshot() {
@@ -73,6 +93,7 @@ function getSnapshot() {
   const sessionRows = bettermeSheet_(book, "Sessões").getRange("D2:E61").getValues();
   const weightRows = bettermeSheet_(book, "Pesagens").getRange("D2:D85").getValues();
   const foodRows = bettermeSheet_(book, "Diário Alimentar").getRange("D2:G85").getValues();
+  const mealRows = bettermeSheet_(book, "Diário Alimentar").getRange("K2:K85").getValues();
   const measureRows = bettermeSheet_(book, "Medidas").getRange("D2:K13").getValues();
 
   const result = {
@@ -81,6 +102,7 @@ function getSnapshot() {
     sessions: {},
     weights: {},
     nutrition: {},
+    meals: {},
     measures: {},
     syncedAt: Utilities.formatDate(new Date(), "America/Sao_Paulo", "dd/MM/yyyy HH:mm")
   };
@@ -114,12 +136,15 @@ function getSnapshot() {
   }
   for (let i = 0; i < foodRows.length; i++) {
     const values = foodRows[i].map(bettermeSafeNumber_);
+    const week = Math.floor(i / 7) + 1;
+    const dayKey = bettermeKey_(week,BETTERME_ALL_DAYS[i % 7]);
     if (values.some(v => v !== null)) {
-      const week = Math.floor(i / 7) + 1;
-      result.nutrition[bettermeKey_(week,BETTERME_ALL_DAYS[i % 7])] = {
+      result.nutrition[dayKey] = {
         calories:values[0],protein:values[1],water:values[2],sleep:values[3]
       };
     }
+    const selected = bettermeMealIds_(mealRows[i][0]);
+    if (selected.length) result.meals[dayKey] = selected;
   }
   for (let i = 0; i < measureRows.length; i++) {
     const row = measureRows[i];
@@ -172,6 +197,33 @@ function saveEntry(payload) {
       if (payload.day !== "Quarta") throw new Error("Recuperação só pode ser registrada na quarta.");
       bettermeSheet_(book, "Sessões").getRange(2 + (week - 1) * 5 + dayIndex,4).setValue("Concluído");
       changed++;
+    } else if (kind === "meal") {
+      // Idempotent selection list prevents duplicate calories on request retries.
+      const dayIndex = bettermeValidDay_(payload.day, BETTERME_ALL_DAYS);
+      const next = payload.selections;
+      if (!Array.isArray(next) || next.length > BETTERME_MEAL_VALUES.length ||
+          next.some(v=>!Number.isInteger(v) || v<0 || v>=BETTERME_MEAL_VALUES.length) ||
+          new Set(next).size !== next.length) {
+        throw new Error("Seleção de refeições inválida.");
+      }
+      const selected = bettermeMealIds_(next);
+      const row = 2 + (week - 1) * 7 + dayIndex;
+      const foodSheet = bettermeSheet_(book, "Diário Alimentar");
+      const previous = bettermeMealIds_(foodSheet.getRange(row,11).getValue());
+      const previousTotals = bettermeMealTotals_(previous);
+      const selectedTotals = bettermeMealTotals_(selected);
+      const recorded = foodSheet.getRange(row,4,1,2).getValues()[0];
+      const kcal = Math.max(0,(bettermeSafeNumber_(recorded[0])||0)-previousTotals[0]+selectedTotals[0]);
+      const protein = Math.max(0,(bettermeSafeNumber_(recorded[1])||0)-previousTotals[1]+selectedTotals[1]);
+      if (kcal > 10000 || protein > 1000) throw new Error("Total diário ultrapassou o limite.");
+      // No-op is safe when a prior successful save is retried.
+      const wasEmpty = previous.length === 0 && !recorded[0] && !recorded[1];
+      const values = selected.length === 0 && wasEmpty ? ["",""] : [kcal,protein];
+      foodSheet.getRange(row,4,1,2).setValues([values]);
+      foodSheet.getRange(row,11).setValue(selected.length ? JSON.stringify(selected) : "");
+      changed += 3;
+      SpreadsheetApp.flush();
+      return {ok:true,updatedCells:changed,calories:values[0],protein:values[1],selections:selected};
     } else if (kind === "nutrition") {
       const dayIndex = bettermeValidDay_(payload.day, BETTERME_ALL_DAYS);
       const row = 2 + (week - 1) * 7 + dayIndex;
@@ -181,6 +233,12 @@ function saveEntry(payload) {
         bettermeNumber_(payload.water,0,20,true),
         bettermeNumber_(payload.sleep,0,24,true)
       ];
+      const meals = bettermeMealIds_(bettermeSheet_(book,"Diário Alimentar").getRange(row,11).getValue());
+      const base = bettermeMealTotals_(meals);
+      if ((values[0]!=="" && values[0]<base[0]) ||
+          (values[1]!=="" && values[1]<base[1])) {
+        throw new Error("Os totais não podem ser menores que as refeições já marcadas.");
+      }
       bettermeSheet_(book, "Diário Alimentar").getRange(row,4,1,4).setValues([values]);
       changed += 4;
     } else if (kind === "weight") {
