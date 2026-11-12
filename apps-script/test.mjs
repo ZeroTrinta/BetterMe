@@ -92,6 +92,7 @@ assert(root.innerHTML.includes("Descanso entre séries"));
 assert(root.innerHTML.includes("Cronômetro da série"),"Timed exercises include timer");
 window.App.timer("rest","start");
 assert(root.innerHTML.includes("Contando"),"Rest countdown starts");
+window.App.trainDay("Segunda");
 window.App.setRep("Segunda",0,0,"8");
 window.App.saveWorkout();
 await new Promise(resolve=>setImmediate(resolve));
