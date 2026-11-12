@@ -20,6 +20,24 @@ Planilha: https://docs.google.com/spreadsheets/d/16CmKhI08ToWywfIybGsPqW_V5zQcCl
 
 Arquivos que você precisa copiar: **Code.gs** e **Index.html**. Não é necessário copiar o arquivo de testes.
 
+## Refeições com um toque
+
+Na aba **Nutrição**, toque no card da refeição consumida. Ela fica destacada em verde e adiciona automaticamente as calorias e proteínas de referência aos totais do dia. Toque novamente para desmarcar e descontar. As seleções são salvas na coluna **K — Refeições consumidas (IDs)** da aba **Diário Alimentar**, sem substituir água, sono, notas ou fórmulas.
+
+- Cada refeição só entra uma vez por dia; reenviar a mesma seleção não duplica calorias.
+- Totais registrados manualmente continuam disponíveis como complementos. Exemplo: se você informou 1000 kcal incluindo 720 kcal do almoço marcado, ao desmarcar o almoço o restante fica em 280 kcal.
+- O card contabiliza a **porção de referência descrita nele**, não verifica automaticamente quanto você realmente comeu. Se a porção foi diferente, ajuste o total no campo de registro ou desmarque o card e anote a quantidade manualmente.
+- A seleção continua separada por semana e dia e é recuperada ao abrir o aplicativo.
+
+### Atualizar uma implantação existente (mesmo endereço)
+
+1. Na planilha, abra **Extensões → Apps Script**.
+2. Substitua o conteúdo de **Código.gs** pelo código atualizado de [Code.gs](./Code.gs).
+3. Substitua o conteúdo de **Index.html** pelo código atualizado de [Index.html](./Index.html).
+4. Salve e acesse **Implantar → Gerenciar implantações → Editar**.
+5. Em **Versão**, selecione **Nova versão** e confirme. **Não crie uma implantação diferente** se deseja preservar o link atual.
+6. Atualize a página BetterMe e teste marcando o café da manhã. A planilha deve registrar **450 kcal, 25 g de proteína e [0] na coluna K**, caso o dia ainda esteja vazio.
+
 ## Recursos
 
 - Interface escura responsiva com painel, progresso e calendário de aderência.
