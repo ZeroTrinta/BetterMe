@@ -1,3 +1,8 @@
+> **Nova versão (Google Apps Script):** O BetterMe agora pode rodar diretamente na sua conta Google, com acesso privado à planilha e sem reconectar OAuth a cada sessão. Consulte [instalação e arquivos](apps-script/README.md).
+>
+> O site antigo do GitHub Pages permanece disponível como versão legada até você publicar o novo endereço /exec.
+
+---
 # BetterMe v3 — Calistenia & Evolução
 
 Aplicativo Next.js 14 + TypeScript + Tailwind, exportado como site estático para GitHub Pages. O armazenamento principal opcional é a planilha privada do Google Sheets, com funcionamento local independente de servidor.
