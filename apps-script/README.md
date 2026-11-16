@@ -38,6 +38,17 @@ Na aba **Nutrição**, toque no card da refeição consumida. Ela fica destacada
 5. Em **Versão**, selecione **Nova versão** e confirme. **Não crie uma implantação diferente** se deseja preservar o link atual.
 6. Atualize a página BetterMe e teste marcando o café da manhã. A planilha deve registrar **450 kcal, 25 g de proteína e [0] na coluna K**, caso o dia ainda esteja vazio.
 
+## Cronômetro flutuante e progressão semanal
+
+- O cronômetro de descanso aparece **recolhido no canto inferior direito** da aba Treinos. Toque no botão com o tempo para abrir, iniciar, pausar, escolher entre 60/90/120/150 segundos ou reiniciar. Recolher o painel **não interrompe a contagem**.
+- Os exercícios principais continuam consistentes durante as 12 semanas. A quantidade de séries varia por semana: **2, 3, 3, 2, 4, 4, 4, 2, 4, 4, 4, 3** (limitada às séries próprias de cada exercício).
+- As **semanas 4 e 8** são de recuperação, e a **semana 12** é de avaliação.
+- A partir do último treino completo registrado para o mesmo exercício, o site sugere **até +1 repetição ou segundo** por série, sem passar do topo da faixa. Se não houve treino completo, mantém o alvo básico. Em semanas de recuperação e de avaliação não aumenta o alvo.
+- Ao atingir o topo da faixa mantendo a técnica, avalie experimentar uma variação mais difícil; isso não é automático e nunca deve provocar dor.
+- A progressão exibida é orientativa. O aplicativo não altera as entradas registradas nem exige que você conclua uma semana incompleta antes de continuar.
+
+**Para publicar a atualização mantendo o endereço do seu Apps Script:** copie somente o [Index.html](./Index.html) atualizado para o arquivo HTML do projeto em **Extensões → Apps Script**, salve, depois vá a **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar**. Não é necessário alterar o arquivo Code.gs nesta atualização.
+
 ## Recursos
 
 - Interface escura responsiva com painel, progresso e calendário de aderência.
