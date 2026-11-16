@@ -104,7 +104,7 @@ const document={
 };
 const remote={
   ...snapshot,
-  exercises:{},sessions:{},weights:{},nutrition:{},measures:{}
+  exercises:{"3:Segunda:0":[6,6,6],"3:Segunda:1":[4,4,4]},sessions:{},weights:{},nutrition:{},measures:{}
 };
 const runner={
  success:null,failure:null,
@@ -123,10 +123,28 @@ vm.runInNewContext(script[1],client,{filename:"Index.html <script>"});
 await new Promise(resolve=>setImmediate(resolve));
 assert(root.innerHTML.includes("Uma versão melhor."),"Dashboard rendered");
 window.App.open("treino");
-assert(root.innerHTML.includes("Descanso entre séries"));
+window.App.trainDay("Segunda");
+assert(root.innerHTML.includes("rest-float"),"Floating rest button exists");
+assert(!root.innerHTML.includes('rest-float-panel'),"Rest panel starts collapsed");
 assert(root.innerHTML.includes("Cronômetro da série"),"Timed exercises include timer");
+window.App.toggleRest();
+assert(root.innerHTML.includes("Descanso entre séries"),"Tap expands the timer");
+assert(root.innerHTML.includes("rest-float-panel"),"Panel is now visible");
 window.App.timer("rest","start");
 assert(root.innerHTML.includes("Contando"),"Rest countdown starts");
+window.App.toggleRest();
+assert(!root.innerHTML.includes("rest-float-panel"),"Timer collapses while running");
+assert(root.innerHTML.includes("Contando"),"Collapsed button keeps timer status");
+window.App.jumpWeek(5);
+assert(root.innerHTML.includes("Alvo sugerido na semana 5: 7 repetições por série"),"Week five adapts from completed week three");
+assert(root.innerHTML.includes("Alvo sugerido na semana 5: 5 repetições por série"),"Below-range performance increases only one repetition");
+window.App.jumpWeek(4);
+assert(root.innerHTML.includes("Semana de recuperação"),"Week four is a deload");
+window.App.jumpWeek(8);
+assert(root.innerHTML.includes("Semana de recuperação"),"Week eight is a deload");
+window.App.jumpWeek(12);
+assert(root.innerHTML.includes("Avaliação:"),"Week twelve compares performance");
+window.App.jumpWeek(1);
 window.App.open("dieta");
 window.App.foodDay("Segunda");
 assert(root.innerHTML.includes("Toque numa refeição para marcar"));
