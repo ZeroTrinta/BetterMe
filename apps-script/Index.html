@@ -79,7 +79,18 @@
     .clock-status{font-size:11px;color:var(--muted)}.clock-buttons{display:flex;gap:7px;align-items:center}.clock-buttons .button{min-height:36px;padding:7px 11px;font-size:12px}
     .clock-progress{height:4px;background:#ffffff13;border-radius:4px;overflow:hidden;margin-top:11px}.clock-progress span{display:block;height:100%;background:var(--lime);transition:width .25s}
     .clock-finish{margin-top:11px;width:100%}
-    .rest-wrap{position:sticky;top:8px;z-index:15;background:#17221a;border-color:#bbed6950;box-shadow:0 10px 30px #0007}
+    .rest-float{position:fixed;right:20px;bottom:22px;z-index:48;display:flex;align-items:flex-end;flex-direction:column;gap:8px;max-width:calc(100vw - 28px);pointer-events:none}
+    .rest-float>*{pointer-events:auto}
+    .rest-toggle{display:flex;align-items:center;gap:10px;min-height:48px;padding:9px 15px;border:1px solid #c5f46d70;border-radius:999px;color:var(--lime);background:#1b2b1f;box-shadow:0 8px 22px #0007;font-weight:800;font-size:12px}
+    .rest-toggle b{font-variant-numeric:tabular-nums;font-size:17px;letter-spacing:.3px}
+    .rest-toggle.done{border-color:var(--lime);background:#263f23}
+    .rest-float-panel{width:min(350px,calc(100vw - 28px));max-height:calc(100dvh - 170px);overflow-y:auto;padding:14px;border:1px solid #c5f46d45;border-radius:18px;background:#19241c;box-shadow:0 15px 40px #000b}
+    .rest-float-panel .clock{margin-top:8px}
+    .rest-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .rest-panel-head strong{font-size:14px}
+    .rest-panel-close{background:#ffffff0b;border:1px solid var(--line);border-radius:9px;color:var(--text);width:33px;height:33px}
+    .micro-goal{margin-top:7px;font-size:11px;color:var(--lime);font-weight:750;line-height:1.5}
+    .micro-goal-note{margin-top:3px;font-size:10px;color:var(--muted);line-height:1.5}
     .inline{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px}
     .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:16px 0}
     .form-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -112,7 +123,7 @@
       .topline .mobile-logo{display:flex;font-weight:900;font-size:18px;align-items:center;gap:7px}.mobile-logo span{color:var(--lime)}
       .two{grid-template-columns:1fr 1fr}
     }
-    @media(max-width:690px){main{padding:20px 15px 110px}.grid.two,.grid.two-equal{grid-template-columns:1fr}.card{padding:18px}.hero{padding:23px}.weekly{grid-template-columns:repeat(6,1fr)}h1{letter-spacing:-1.7px}.form-grid.four{grid-template-columns:1fr 1fr}.top-actions .pill{font-size:10px;padding:7px 10px}}
+    @media(max-width:690px){.rest-float{right:12px;bottom:calc(78px + env(safe-area-inset-bottom))}.rest-float-panel{max-height:calc(100dvh - 190px)}main{padding:20px 15px 110px}.grid.two,.grid.two-equal{grid-template-columns:1fr}.card{padding:18px}.hero{padding:23px}.weekly{grid-template-columns:repeat(6,1fr)}h1{letter-spacing:-1.7px}.form-grid.four{grid-template-columns:1fr 1fr}.top-actions .pill{font-size:10px;padding:7px 10px}}
     @media(max-width:390px){.stats{gap:8px}.card.stat{padding:12px;min-height:105px}.big{font-size:25px}.day-select.seven{gap:3px}.day-btn{font-size:10px}.presets{flex-wrap:wrap}.clock-time{font-size:25px}.clock-row{gap:7px}}
   </style>
 </head>
@@ -184,7 +195,7 @@
   let queue=readStorage(PENDING,[]);
   let timers={};
   try{timers=JSON.parse(sessionStorage.getItem(TIMERS)||"{}")||{}}catch{}
-  const ui={tab:"inicio",week:1,train:"Segunda",food:"Segunda",draft:{},loading:true,saving:false,connected:false};
+  const ui={tab:"inicio",week:1,train:"Segunda",food:"Segunda",draft:{},restOpen:false,loading:true,saving:false,connected:false};
   const fmt=(x,digits=1)=>Number(x).toLocaleString("pt-BR",{maximumFractionDigits:digits});
   const esc=(x)=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const key=(week,day)=>week+":"+day;
@@ -412,32 +423,64 @@
     const k=exKey(ui.week,day,index);
     return ui.draft[k]||state.exercises[k]||[null,null,null,null];
   }
+  // A completed workout establishes the reference. Easier weeks never increase its target.
+  function weeklyTarget(week,day,index,ex){
+    const low=ex[3],high=ex[4],recovery=week===4||week===8,assessment=week===12;
+    let previousWeek=0,previousMin=0;
+    for(let prev=week-1;prev>=1;prev--){
+      if(prev===4||prev===8)continue;
+      const row=state.exercises[exKey(prev,day,index)]||[];
+      const planned=Math.min(WEEK[prev-1][1],ex[2]);
+      const entries=row.slice(0,planned).map(Number);
+      if(entries.length===planned&&entries.every(v=>Number.isFinite(v)&&v>0)){
+        previousWeek=prev;previousMin=Math.min.apply(null,entries);break;
+      }
+    }
+    const target=previousWeek?Math.max(low,Math.min(high,previousMin+(recovery||assessment?0:1))):low;
+    const unit=ex[7]?"segundos":"repetições";
+    let note=previousWeek?"Referência: mínimo da semana "+previousWeek+" ("+previousMin+").":"Comece com técnica e 1–3 repetições de reserva.";
+    if(recovery)note="Semana de recuperação: reduza esforço e não aumente a dificuldade.";
+    else if(assessment)note="Avaliação: registre seu desempenho mantendo a técnica.";
+    else if(previousWeek&&previousMin>=high)note="Topo da faixa dominado: considere uma variação mais difícil, só com técnica sólida.";
+    else if(week>=9)note+=" Controle a descida e faça uma pausa breve.";
+    return {target,unit,note,recovery,assessment,previousWeek};
+  }
+  function restFloat(){
+    const t=timerDefault("rest",90),visible=ui.restOpen;
+    const status=t.status==="done"?"✓ Concluído":t.status==="running"?"● Contando":t.status==="paused"?"Ⅱ Pausado":"⏱ Descanso";
+    return '<div class="rest-float" aria-label="Timer de descanso flutuante">'+
+      (visible?'<div class="rest-float-panel"><div class="rest-panel-head"><strong>Descanso entre séries</strong><button type="button" class="rest-panel-close" aria-label="Recolher cronômetro" onclick="App.toggleRest()">✕</button></div>'+timerView("rest","Defina o intervalo",90,150,false)+'</div>':'')+
+      '<button type="button" class="rest-toggle '+(t.status==="done"?"done":"")+'" onclick="App.toggleRest()" aria-label="'+(visible?"Fechar":"Abrir")+' cronômetro de descanso" aria-expanded="'+visible+'"><span data-rest-float-status>'+status+'</span><b data-rest-float-time>'+timeStr(t.remaining)+'</b><span>'+(visible?"⌄":"⌃")+'</span></button></div>';
+  }
+  function toggleRest(){ui.restOpen=!ui.restOpen;render()}
   function training(){
     const w=ui.week,phase=WEEK[w-1],day=ui.train,exercises=EX[day]||[];
     let details='<div class="inline" style="margin:16px 0"><div><div class="eyebrow">'+phase[0]+'</div><h2>'+(day==="Quarta"?"Recuperação ativa":(day==="Segunda"||day==="Quinta"?"Treino superior":"Treino inferior"))+'</h2><p class="helper">'+phase[3]+'</p></div><span class="tag '+(checked(w,day)==="Concluído"?"green":checked(w,day)==="Parcial"?"amber":"")+'">'+statusText(checked(w,day))+'</span></div>';
     if(day==="Quarta"){
       details+=card('<div class="eyebrow">Dia leve</div><h2 style="margin:8px 0">Caminhada e mobilidade</h2><p class="lead">'+phase[2]+' minutos de caminhada em ritmo confortável, mais 10 minutos de mobilidade de ombros, quadris e tornozelos.</p><button class="button" onclick="App.finishRecovery()">✓ Marcar recuperação concluída</button>');
     }else{
-      details+=card('<div class="inline"><h3>Descanso entre séries</h3><span class="tag green">Sem perder a contagem</span></div><p class="helper">Escolha 60, 90, 120 ou 150 segundos. O relógio continua correto mesmo quando você sai da aba.</p>'+timerView("rest","Descanso",90,150,false),'rest-wrap');
+      // The compact rest timer is rendered separately as a floating control.
       for(let i=0;i<exercises.length;i++){
-        const ex=exercises[i],count=Math.min(phase[1],ex[2]),sets=draftSets(day,i);
+        const ex=exercises[i],count=Math.min(phase[1],ex[2]),sets=draftSets(day,i),goal=weeklyTarget(w,day,i,ex);
         const entered=sets.slice(0,count).filter(v=>v!==null&&v!==""&&Number(v)>0).length;
         const allTop=entered===count&&sets.slice(0,count).every(v=>Number(v)>=ex[4]);
         const allMin=entered===count&&sets.slice(0,count).every(v=>Number(v)>=ex[3]);
-        const tip=entered===0?"Não registrado":entered<count?"Complete as séries":allTop?"Pronto para progredir":allMin?"Busque +1 repetição":"Adapte a variação";
+        const allGoal=entered===count&&sets.slice(0,count).every(v=>Number(v)>=goal.target);
+        const tip=entered===0?"Não registrado":entered<count?"Complete as séries":allTop?"Topo da faixa atingido":allGoal?(goal.recovery?"Semana leve concluída":"Meta da semana atingida"):allMin?"Busque o alvo da semana":"Adapte a variação";
         const tone=allTop?"green":entered===count&&!allMin?"amber":"";
         let inputs='';
         for(let slot=0;slot<count;slot++){
           inputs+='<label><span>Série '+(slot+1)+'</span><input inputmode="numeric" type="number" min="0" max="900" step="1" value="'+esc(value(sets[slot]))+'" placeholder="—" oninput="App.setRep(\''+day+'\','+i+','+slot+',this.value)"></label>';
         }
         details+=card('<div class="ex-title"><div class="ex-num">'+String(i+1).padStart(2,"0")+'</div>'+
-          '<div class="ex-details"><div class="eyebrow">'+esc(ex[1])+'</div><h3>'+esc(ex[0])+'</h3><small>'+count+' séries × '+ex[3]+'–'+ex[4]+' '+(ex[7]?"segundos":"repetições")+'</small></div></div>'+
+          '<div class="ex-details"><div class="eyebrow">'+esc(ex[1])+'</div><h3>'+esc(ex[0])+'</h3><small>'+count+' séries × '+ex[3]+'–'+ex[4]+' '+(ex[7]?"segundos":"repetições")+'</small>'+
+          '<div class="micro-goal">Alvo sugerido na semana '+w+': '+goal.target+' '+goal.unit+' por série</div><div class="micro-goal-note">'+esc(goal.note)+'</div></div></div>'+
           '<div class="set-grid">'+inputs+'</div><div class="ex-footer"><span class="tag '+tone+'">'+tip+'</span><span class="helper">Alternativa: '+esc(ex[5])+'</span></div>'+
           '<p class="helper" style="margin:10px 0 0">'+esc(ex[6])+'</p>'+
           (ex[7]?timerView("ex-"+w+"-"+day+"-"+i,"Cronômetro da série",ex[3],ex[4],true,day,i):""),
           'exercise');
       }
-      details+='<div class="notice"><strong>Progressão inteligente:</strong> se atingir o máximo de repetições/segundos em todas as séries, experimente uma variação mais difícil na próxima sessão, mantendo a técnica.</div>'+
+      details+='<div class="notice"><strong>Progressão:</strong> o número de séries muda por fase, e o alvo sugerido usa seu último treino completo. O ritmo é seu: não há necessidade de aumentar toda semana. Nas semanas 4 e 8, reduza o esforço; se chegar ao topo da faixa com boa técnica, experimente uma variação mais difícil.</div>'+
         '<div class="save-bar"><p>Os dados serão gravados diretamente no Google Sheets quando você tocar em salvar.</p><button class="button" onclick="App.saveWorkout()">✓ Salvar treino</button></div>';
     }
     return '<div class="eyebrow">Treino do dia</div><h1>Construa sua <span class="accent">força.</span></h1><p class="lead">Registre cada série. Os exercícios de sustentação têm cronômetros integrados.</p>'+
@@ -525,7 +568,8 @@
       '<div class="side-status" id="side-sync"></div></div></div>'+
       '<main><div class="content"><div class="topline"><div class="mobile-logo"><span>↗</span> BETTER<span>ME.</span></div>'+
       '<div class="tiny">Sua jornada, no seu ritmo.</div><div class="top-actions"><button class="icon-btn" title="Atualizar dados" onclick="App.refresh()">↻</button><span class="pill" id="sync-status"></span></div></div>'+tabContent+'</div></main>'+
-      '<div class="mobile-nav">'+nav.map(n=>navButton(n,false)).join("")+'</div>';
+      '<div class="mobile-nav">'+nav.map(n=>navButton(n,false)).join("")+'</div>'+
+      (ui.tab==="treino"&&ui.train!=="Quarta"?restFloat():"");
     document.getElementById("root").innerHTML=main;
     updateConnection();timerTick();
   }
@@ -619,6 +663,12 @@
           if(document.querySelector('[data-clock="'+id+'"]'))setTimeout(render,0);
         }
       }
+      if(id==="rest"){
+        const fabTime=document.querySelector('[data-rest-float-time]');
+        const fabStatus=document.querySelector('[data-rest-float-status]');
+        if(fabTime)fabTime.textContent=timeStr(t.remaining);
+        if(fabStatus)fabStatus.textContent=t.status==="done"?"✓ Concluído":t.status==="running"?"● Contando":t.status==="paused"?"Ⅱ Pausado":"⏱ Descanso";
+      }
       const time=document.querySelector('[data-time="'+id+'"]');
       const status=document.querySelector('[data-status="'+id+'"]');
       const bar=document.querySelector('[data-progress="'+id+'"]');
@@ -658,7 +708,7 @@
   window.App={
     open:navTo,week:changeWeek,jumpWeek,trainDay:setTrain,foodDay:setFood,setRep:setReps,
     saveWorkout,finishRecovery,saveNutrition,toggleMeal,saveWeight,saveMeasure,saveStart,
-    timer,recordTimed,refresh
+    timer,toggleRest,recordTimed,refresh
   };
   setInterval(timerTick,250);
   document.addEventListener("visibilitychange",timerTick);
