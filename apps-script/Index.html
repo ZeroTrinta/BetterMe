@@ -436,7 +436,7 @@
         previousWeek=prev;previousMin=Math.min.apply(null,entries);break;
       }
     }
-    const target=previousWeek?Math.max(low,Math.min(high,previousMin+(recovery||assessment?0:1))):low;
+    const target=previousWeek?Math.max(1,Math.min(high,previousMin+(recovery||assessment?0:1))):low;
     const unit=ex[7]?"segundos":"repetições";
     let note=previousWeek?"Referência: mínimo da semana "+previousWeek+" ("+previousMin+").":"Comece com técnica e 1–3 repetições de reserva.";
     if(recovery)note="Semana de recuperação: reduza esforço e não aumente a dificuldade.";
