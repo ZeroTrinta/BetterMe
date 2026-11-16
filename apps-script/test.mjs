@@ -104,7 +104,7 @@ const document={
 };
 const remote={
   ...snapshot,
-  exercises:{"3:Segunda:0":[6,6,6]},sessions:{},weights:{},nutrition:{},measures:{}
+  exercises:{"3:Segunda:0":[6,6,6],"3:Segunda:1":[4,4,4]},sessions:{},weights:{},nutrition:{},measures:{}
 };
 const runner={
  success:null,failure:null,
@@ -123,6 +123,7 @@ vm.runInNewContext(script[1],client,{filename:"Index.html <script>"});
 await new Promise(resolve=>setImmediate(resolve));
 assert(root.innerHTML.includes("Uma versão melhor."),"Dashboard rendered");
 window.App.open("treino");
+window.App.trainDay("Segunda");
 assert(root.innerHTML.includes("rest-float"),"Floating rest button exists");
 assert(!root.innerHTML.includes('rest-float-panel'),"Rest panel starts collapsed");
 assert(root.innerHTML.includes("Cronômetro da série"),"Timed exercises include timer");
@@ -136,6 +137,7 @@ assert(!root.innerHTML.includes("rest-float-panel"),"Timer collapses while runni
 assert(root.innerHTML.includes("Contando"),"Collapsed button keeps timer status");
 window.App.jumpWeek(5);
 assert(root.innerHTML.includes("Alvo sugerido na semana 5: 7 repetições por série"),"Week five adapts from completed week three");
+assert(root.innerHTML.includes("Alvo sugerido na semana 5: 5 repetições por série"),"Below-range performance increases only one repetition");
 window.App.jumpWeek(4);
 assert(root.innerHTML.includes("Semana de recuperação"),"Week four is a deload");
 window.App.jumpWeek(8);
