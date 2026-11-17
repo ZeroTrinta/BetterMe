@@ -28,3 +28,7 @@ public/workbox-*.js.map
 public/worker-*.js
 public/worker-*.js.map
 public/fallback-*.js
+
+# clasp authentication (refresh tokens) and script mapping
+.clasprc.json
+.clasp.json
