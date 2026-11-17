@@ -6,6 +6,10 @@ Versão independente do BetterMe hospedada no Google Apps Script e conectada à 
 
 Planilha: https://docs.google.com/spreadsheets/d/16CmKhI08ToWywfIybGsPqW_V5zQcClt0ajh-ELKfW08/edit
 
+## Publicação automática (sem copiar e colar)
+
+O GitHub já tem um workflow seguro para publicar no Apps Script, inicialmente desativado até configurar as credenciais. Veja [guia de automação via clasp](./AUTOMACAO_GITHUB.md) para ativar com teste sem publicação, preservando a mesma URL do BetterMe.
+
 ## Instalação sem terminal
 
 1. Abra a planilha acima com a conta Google proprietária.

@@ -1,0 +1,80 @@
+name: BetterMe - Publicar Google Apps Script
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps-script/Code.gs'
+      - 'apps-script/Index.html'
+      - '.github/scripts/stage-betterme-apps-script.mjs'
+      - '.github/workflows/deploy-apps-script.yml'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Somente verificar acesso e arquivos, sem publicar'
+        type: boolean
+        required: true
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: betterme-apps-script
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # Nenhum push automatico ate o proprietario habilitar a variavel.
+    if: github.event_name == 'workflow_dispatch' || vars.BETTERME_APPS_SCRIPT_AUTO_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar codigo e protecoes
+        run: |
+          node apps-script/test.mjs
+          node .github/scripts/stage-betterme-apps-script.test.mjs
+      - name: Verificar credenciais privadas
+        env:
+          CREDENTIALS: ${{ secrets.BETTERME_CLASPRC_JSON }}
+          DEPLOYMENT_ID: ${{ secrets.BETTERME_DEPLOYMENT_ID }}
+        run: |
+          if [ -z "$CREDENTIALS" ] || [ -z "$DEPLOYMENT_ID" ]; then
+            echo 'Configure BETTERME_CLASPRC_JSON e BETTERME_DEPLOYMENT_ID em Settings > Secrets and variables > Actions.'
+            exit 1
+          fi
+      - name: Instalar clasp
+        run: npm install --global @google/clasp@3.4.1
+      - name: Preparar credenciais temporarias
+        env:
+          CLASPRC_JSON: ${{ secrets.BETTERME_CLASPRC_JSON }}
+          SCRIPT_ID: 1URa9nYDcJAu1av-pVoier8zeu5_NQ98aE836c5Sfof75AvyxlW8w4Q6W
+        run: |
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          chmod 600 "$HOME/.clasprc.json"
+          mkdir -p "$RUNNER_TEMP/betterme-remote"
+          node -e 'require("fs").writeFileSync(process.argv[1], JSON.stringify({scriptId:process.env.SCRIPT_ID}))' "$RUNNER_TEMP/betterme-remote/.clasp.json"
+      - name: Baixar projeto existente (preservar manifesto e arquivos extras)
+        working-directory: ${{ runner.temp }}/betterme-remote
+        run: clasp pull
+      - name: Substituir so os arquivos BetterMe na copia remota
+        working-directory: ${{ runner.temp }}/betterme-remote
+        run: node "$GITHUB_WORKSPACE/.github/scripts/stage-betterme-apps-script.mjs" "$PWD" "$GITHUB_WORKSPACE/apps-script"
+      - name: Conferir arquivos preparados
+        working-directory: ${{ runner.temp }}/betterme-remote
+        run: clasp show-file-status
+      - name: Atualizar implantacao existente (preserva a URL)
+        if: github.event_name == 'push' || !inputs.dry_run
+        working-directory: ${{ runner.temp }}/betterme-remote
+        env:
+          DEPLOYMENT_ID: ${{ secrets.BETTERME_DEPLOYMENT_ID }}
+        run: |
+          clasp push --force
+          clasp create-deployment --deploymentId "$DEPLOYMENT_ID" --description "BetterMe commit ${GITHUB_SHA::8}"
+      - name: Remover credenciais temporarias
+        if: always()
+        run: rm -f "$HOME/.clasprc.json"
