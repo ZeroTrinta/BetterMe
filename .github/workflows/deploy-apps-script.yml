@@ -41,10 +41,10 @@ jobs:
       - name: Verificar credenciais privadas
         env:
           CREDENTIALS: ${{ secrets.BETTERME_CLASPRC_JSON }}
-          DEPLOYMENT_ID: ${{ secrets.BETTERME_DEPLOYMENT_ID }}
+          DEPLOYMENT_ID: AKfycbzGsa8zz4BXqqqfX-kO9OENMm91x6MVb0ODx3sdksaaz-Pv-mfbWzjm7g24kUWhVmAC
         run: |
           if [ -z "$CREDENTIALS" ] || [ -z "$DEPLOYMENT_ID" ]; then
-            echo 'Configure BETTERME_CLASPRC_JSON e BETTERME_DEPLOYMENT_ID em Settings > Secrets and variables > Actions.'
+            echo 'Configure BETTERME_CLASPRC_JSON em Settings > Secrets and variables > Actions.'
             exit 1
           fi
       - name: Instalar clasp
@@ -71,7 +71,7 @@ jobs:
         if: github.event_name == 'push' || !inputs.dry_run
         working-directory: ${{ runner.temp }}/betterme-remote
         env:
-          DEPLOYMENT_ID: ${{ secrets.BETTERME_DEPLOYMENT_ID }}
+          DEPLOYMENT_ID: AKfycbzGsa8zz4BXqqqfX-kO9OENMm91x6MVb0ODx3sdksaaz-Pv-mfbWzjm7g24kUWhVmAC
         run: |
           clasp push --force
           clasp create-deployment --deploymentId "$DEPLOYMENT_ID" --description "BetterMe commit ${GITHUB_SHA::8}"
