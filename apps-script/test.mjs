@@ -149,6 +149,7 @@ for(const day of ["Segunda","Terça","Quinta","Sexta"]){
   }
 }
 window.App.trainDay("Segunda");
+window.App.jumpWeek(1);
 window.App.timer("ex-1-Segunda-4","start");
 assert(root.innerHTML.includes("Contando"),"Exercise isometric timer still works");
 window.App.timer("ex-1-Segunda-4","reset");
