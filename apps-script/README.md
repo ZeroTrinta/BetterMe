@@ -53,12 +53,20 @@ Na aba **Nutrição**, toque no card da refeição consumida. Ela fica destacada
 
 **Para publicar a atualização mantendo o endereço do seu Apps Script:** copie somente o [Index.html](./Index.html) atualizado para o arquivo HTML do projeto em **Extensões → Apps Script**, salve, depois vá a **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar**. Não é necessário alterar o arquivo Code.gs nesta atualização.
 
+## Ajuda dos exercícios (sem timer de descanso)
+
+Cada um dos **20 exercícios de força** (5 por dia, às segundas, terças, quintas e sextas) possui um botão **Como fazer / progressões**. Ele expande o próprio card com posição inicial, instruções, erros a evitar, variações mais fáceis e mais difíceis e link externo para demonstração em vídeo ou guia. Quando há um vídeo/guia validado, abre diretamente; nos demais exercícios o botão abre uma pesquisa específica no YouTube, claramente identificada como pesquisa. Os links abrem em outra aba.
+
+O **cronômetro de descanso foi totalmente removido**, inclusive seu botão flutuante. Os cronômetros individuais de prancha, sustentação na barra, hollow hold e isometria na parede continuam disponíveis para registrar as séries por tempo.
+
+Esta atualização altera **somente o arquivo [Index.html](./Index.html)** do Apps Script. Não modifica o backend, as fórmulas ou seus registros na planilha. Se o deploy automático não estiver ativado, atualize o Index.html no projeto Google e use **Implantar → Gerenciar implantações → Editar → Nova versão**, para manter o mesmo endereço.
+
 ## Recursos
 
 - Interface escura responsiva com painel, progresso e calendário de aderência.
 - Treinos segunda, terça, quinta e sexta; recuperação ativa às quartas.
 - Progressão semanal e histórico de séries/repetições.
-- Timers de descanso de 60, 90, 120 e 150 segundos e cronômetros nos exercícios por tempo.
+- Botão de instruções e links demonstrativos nos 20 exercícios; sem cronômetro de descanso e com cronômetros próprios somente nos exercícios por tempo.
 - Alimentação, peso, cintura, testes de barra/flexão e gráfico de evolução.
 - Chamadas assíncronas google.script.run para ler e escrever na mesma planilha.
 - Cache local e fila de gravação para falhas breves de conexão.

@@ -79,16 +79,21 @@
     .clock-status{font-size:11px;color:var(--muted)}.clock-buttons{display:flex;gap:7px;align-items:center}.clock-buttons .button{min-height:36px;padding:7px 11px;font-size:12px}
     .clock-progress{height:4px;background:#ffffff13;border-radius:4px;overflow:hidden;margin-top:11px}.clock-progress span{display:block;height:100%;background:var(--lime);transition:width .25s}
     .clock-finish{margin-top:11px;width:100%}
-    .rest-float{position:fixed;right:20px;bottom:22px;z-index:48;display:flex;align-items:flex-end;flex-direction:column;gap:8px;max-width:calc(100vw - 28px);pointer-events:none}
-    .rest-float>*{pointer-events:auto}
-    .rest-toggle{display:flex;align-items:center;gap:10px;min-height:48px;padding:9px 15px;border:1px solid #c5f46d70;border-radius:999px;color:var(--lime);background:#1b2b1f;box-shadow:0 8px 22px #0007;font-weight:800;font-size:12px}
-    .rest-toggle b{font-variant-numeric:tabular-nums;font-size:17px;letter-spacing:.3px}
-    .rest-toggle.done{border-color:var(--lime);background:#263f23}
-    .rest-float-panel{width:min(350px,calc(100vw - 28px));max-height:calc(100dvh - 170px);overflow-y:auto;padding:14px;border:1px solid #c5f46d45;border-radius:18px;background:#19241c;box-shadow:0 15px 40px #000b}
-    .rest-float-panel .clock{margin-top:8px}
-    .rest-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .rest-panel-head strong{font-size:14px}
-    .rest-panel-close{background:#ffffff0b;border:1px solid var(--line);border-radius:9px;color:var(--text);width:33px;height:33px}
+    .howto-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;margin-top:12px;padding:8px 13px;color:var(--lime);font-size:12px;font-weight:750;background:#c5f46d0b;border:1px solid #c5f46d45;border-radius:11px;transition:background .15s}
+    .howto-btn:hover{background:#c5f46d19}
+    .howto-panel{margin-top:10px;padding:15px;border-radius:13px;background:#0f1913;border:1px solid #c5f46d35}
+    .howto-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:11px}
+    .howto-head strong{font-size:14px}
+    .howto-panel p{font-size:12px;color:var(--dim);line-height:1.7;margin:0 0 11px}
+    .howto-panel p b{display:block;color:#e1f0df;margin-bottom:3px;font-size:11px}
+    .howto-levels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+    .howto-levels>div{border:1px solid var(--line);border-radius:10px;background:#ffffff05;padding:10px}
+    .howto-levels small{display:block;color:var(--lime);font-weight:750;font-size:9px;letter-spacing:1.4px;margin-bottom:5px}
+    .howto-levels p{margin:0}
+    .howto-video{display:flex;justify-content:center;align-items:center;min-height:42px;padding:9px 12px;border-radius:11px;background:var(--lime);color:#112014;font-size:12px;font-weight:800;text-align:center}
+    .howto-video:hover{background:#d8ffa0}
+    .howto-panel .howto-disclaimer{font-size:10px;margin:8px 0 0;color:var(--muted)}
+    @media(max-width:420px){.howto-levels{grid-template-columns:1fr}}
     .micro-goal{margin-top:7px;font-size:11px;color:var(--lime);font-weight:750;line-height:1.5}
     .micro-goal-note{margin-top:3px;font-size:10px;color:var(--muted);line-height:1.5}
     .inline{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px}
@@ -123,7 +128,7 @@
       .topline .mobile-logo{display:flex;font-weight:900;font-size:18px;align-items:center;gap:7px}.mobile-logo span{color:var(--lime)}
       .two{grid-template-columns:1fr 1fr}
     }
-    @media(max-width:690px){.rest-float{right:12px;bottom:calc(78px + env(safe-area-inset-bottom))}.rest-float-panel{max-height:calc(100dvh - 190px)}main{padding:20px 15px 110px}.grid.two,.grid.two-equal{grid-template-columns:1fr}.card{padding:18px}.hero{padding:23px}.weekly{grid-template-columns:repeat(6,1fr)}h1{letter-spacing:-1.7px}.form-grid.four{grid-template-columns:1fr 1fr}.top-actions .pill{font-size:10px;padding:7px 10px}}
+    @media(max-width:690px){main{padding:20px 15px 110px}.grid.two,.grid.two-equal{grid-template-columns:1fr}.card{padding:18px}.hero{padding:23px}.weekly{grid-template-columns:repeat(6,1fr)}h1{letter-spacing:-1.7px}.form-grid.four{grid-template-columns:1fr 1fr}.top-actions .pill{font-size:10px;padding:7px 10px}}
     @media(max-width:390px){.stats{gap:8px}.card.stat{padding:12px;min-height:105px}.big{font-size:25px}.day-select.seven{gap:3px}.day-btn{font-size:10px}.presets{flex-wrap:wrap}.clock-time{font-size:25px}.clock-row{gap:7px}}
   </style>
 </head>
@@ -181,6 +186,190 @@
       ["Elevação joelhos na barra","Core",3,6,12,"Abdominal reverso","Evite balanço."]
     ]
   };
+  // Referência didática para os 20 movimentos. Vídeos diretos somente quando
+  // verificados; demais botões abrem busca específica de demonstrações.
+  const GUIDES={
+  "Barra fixa pronada": {
+    "setup": "Segure a barra com as palmas para fora e mãos um pouco além dos ombros.",
+    "execution": "Ative o abdômen; puxe os cotovelos para baixo até o queixo ultrapassar a barra; desça sem despencar.",
+    "avoid": "Não balance o corpo nem force o pescoço para alcançar a barra.",
+    "easy": "Barra com pés apoiados em suporte estável; negativas controladas.",
+    "hard": "Barras completas mais controladas, pausa no topo.",
+    "query": "barra fixa pronada técnica progressão",
+    "url": "https://www.youtube.com/watch?v=Zcs9XKRLEeM"
+  },
+  "Flexão tradicional": {
+    "setup": "Mãos sob ou pouco além dos ombros, pernas estendidas e corpo em linha reta.",
+    "execution": "Flexione os cotovelos e aproxime o peito do chão; empurre mantendo quadris e tronco juntos.",
+    "avoid": "Evite deixar quadril cair ou abrir cotovelos excessivamente.",
+    "easy": "Flexão com mãos elevadas numa bancada firme.",
+    "hard": "Flexão com pausa, descida lenta ou amplitude maior.",
+    "query": "flexão de braço tradicional execução progressões",
+    "url": "https://www.hybridcalisthenics.com/routine"
+  },
+  "Flexão pike": {
+    "setup": "Mãos no chão, quadris elevados, formando um V invertido.",
+    "execution": "Leve a cabeça controladamente entre as mãos; empurre o chão para retornar.",
+    "avoid": "Não deixe todo o peso cair sobre a cabeça ou fechar os ombros bruscamente.",
+    "easy": "Pike com apoio mais elevado para as mãos.",
+    "hard": "Pike com pés elevados numa base firme, aumentando gradualmente a inclinação.",
+    "query": "pike push up progressão ombro técnica",
+    "url": "https://www.youtube.com/watch?v=lIZ_C4VJnmc"
+  },
+  "Retração escapular na barra": {
+    "setup": "Pendure-se com pegada confortável e braços estendidos, sem relaxar abruptamente os ombros.",
+    "execution": "Com os cotovelos quase estendidos, afaste os ombros das orelhas e eleve o tronco alguns centímetros; retorne devagar.",
+    "avoid": "Não transforme em barra fixa dobrando bastante os cotovelos.",
+    "easy": "Faça o movimento com pés no chão e parte do peso apoiada.",
+    "hard": "Aumente a pausa na posição de escápulas ativas.",
+    "query": "scapular pull ups tutorial demonstração",
+    "url": null
+  },
+  "Prancha frontal": {
+    "setup": "Apoie antebraços e pontas dos pés, com cotovelos abaixo dos ombros.",
+    "execution": "Contraia glúteos e abdômen e mantenha o corpo alinhado enquanto respira.",
+    "avoid": "Evite elevar muito os quadris ou arquear a lombar.",
+    "easy": "Prancha com joelhos apoiados.",
+    "hard": "Prancha com alavanca ligeiramente mais longa ou tempo maior, mantendo alinhamento.",
+    "query": "prancha abdominal frontal como fazer",
+    "url": null
+  },
+  "Agachamento búlgaro": {
+    "setup": "Coloque um pé à frente e o outro atrás sobre um apoio baixo, firme e estável.",
+    "execution": "Flexione a perna da frente e desça verticalmente até uma amplitude confortável; suba usando a perna da frente.",
+    "avoid": "Evite apoio alto demais, perder equilíbrio ou empurrar principalmente com o pé de trás.",
+    "easy": "Afundo reverso ou agachamento dividido com pés no chão.",
+    "hard": "Amplitude maior ou pausa no fundo, sem perder estabilidade.",
+    "query": "agachamento búlgaro execução progressão",
+    "url": "https://www.youtube.com/watch?v=-4LVK1crLSw"
+  },
+  "Agachamento lento": {
+    "setup": "Fique de pé com pés na largura confortável dos ombros.",
+    "execution": "Desça em cerca de três segundos flexionando quadril e joelhos; suba com controle.",
+    "avoid": "Evite tirar os calcanhares do chão ou sacrificar equilíbrio para descer mais.",
+    "easy": "Agachamento até cadeira firme e alta.",
+    "hard": "Pausa de dois segundos no fundo ou avanço para agachamento dividido.",
+    "query": "agachamento livre lento técnica",
+    "url": null
+  },
+  "Terra unilateral sem peso": {
+    "setup": "Fique em um pé, com joelho levemente flexionado e tronco alongado.",
+    "execution": "Incline o quadril para trás enquanto a outra perna se estende para trás; retorne usando glúteos.",
+    "avoid": "Evite arredondar muito as costas ou girar o quadril para um lado.",
+    "easy": "Terra bilateral sem peso ou com ponta do pé de trás no chão.",
+    "hard": "Aumente gradualmente a amplitude ou faça uma pausa na parte baixa.",
+    "query": "single leg romanian deadlift bodyweight técnica",
+    "url": null
+  },
+  "Panturrilha": {
+    "setup": "Fique em pé, segurando apoio firme se necessário.",
+    "execution": "Eleve os calcanhares, sustente brevemente na ponta dos pés e desça de forma controlada.",
+    "avoid": "Evite quicar ou fazer tudo no embalo.",
+    "easy": "Elevação bilateral segurando apoio.",
+    "hard": "Elevação unilateral e pausa no topo, sem peso adicional.",
+    "query": "elevação panturrilha em pé técnica",
+    "url": null
+  },
+  "Dead bug": {
+    "setup": "Deite-se de costas, braços apontando ao teto e quadris e joelhos a 90 graus.",
+    "execution": "Estenda lentamente braço e perna opostos sem perder o controle do abdômen; alterne os lados.",
+    "avoid": "Não deixe as costas arquearem nem faça o movimento rápido demais.",
+    "easy": "Mova só uma perna ou reduza a amplitude.",
+    "hard": "Estenda os membros mais próximos do chão mantendo lombar estável.",
+    "query": "dead bug exercício core execução",
+    "url": null
+  },
+  "Barra fixa supinada": {
+    "setup": "Segure a barra com as palmas voltadas para você e pegada confortável.",
+    "execution": "Ative o tronco e puxe até aproximar o queixo da barra; desça lentamente.",
+    "avoid": "Não dê trancos, nem force punhos ou cotovelos se houver dor.",
+    "easy": "Barra com apoio dos pés ou negativas.",
+    "hard": "Pausa controlada no topo e maior amplitude dentro do confortável.",
+    "query": "chin up barra supinada execução progressão",
+    "url": "https://www.youtube.com/watch?v=Zcs9XKRLEeM"
+  },
+  "Flexão mãos próximas": {
+    "setup": "Posicione as mãos um pouco mais próximas que na flexão comum, sem precisar formar um diamante.",
+    "execution": "Flexione com cotovelos próximos ao tronco e empurre mantendo o corpo alinhado.",
+    "avoid": "Evite aproximar tanto as mãos que cause dor nos punhos.",
+    "easy": "Flexão tradicional ou inclinada com pegada confortável.",
+    "hard": "Desça mais lentamente ou inclua pausa embaixo.",
+    "query": "close grip push up técnica exercício",
+    "url": null
+  },
+  "Sustentação na barra": {
+    "setup": "Suba com apoio estável até manter o queixo acima da barra.",
+    "execution": "Segure a posição com ombros ativos e abdômen firme; desça quando perder o controle.",
+    "avoid": "Não prenda a respiração nem fique pendurado por dor no ombro.",
+    "easy": "Sustentação com apoio parcial dos pés ou negativas curtas.",
+    "hard": "Aumente poucos segundos mantendo a posição sólida.",
+    "query": "flexed arm hang barra isometria tutorial",
+    "url": null
+  },
+  "Flexão pés elevados": {
+    "setup": "Coloque os pés sobre base baixa e estável e mãos no chão.",
+    "execution": "Mantenha o corpo alinhado, desça o peito com controle e empurre sem perder a linha do tronco.",
+    "avoid": "Evite elevar demais os pés ou sobrecarregar ombros.",
+    "easy": "Flexão tradicional no chão.",
+    "hard": "Elevação um pouco maior, progressivamente, mantendo controle.",
+    "query": "decline push up técnica pés elevados",
+    "url": null
+  },
+  "Hollow hold": {
+    "setup": "Deite-se de costas e pressione suavemente a lombar em direção ao chão.",
+    "execution": "Eleve ombros e pernas apenas o suficiente para sustentar a posição com abdômen contraído.",
+    "avoid": "Não arqueie a lombar só para afastar mais as pernas do chão.",
+    "easy": "Joelhos flexionados ou dead bug.",
+    "hard": "Estenda gradualmente pernas e braços sem perder a lombar estável.",
+    "query": "hollow body hold progressão como fazer",
+    "url": null
+  },
+  "Afundo reverso": {
+    "setup": "Comece em pé, com pés na largura do quadril.",
+    "execution": "Dê um passo para trás e desça os joelhos com controle; empurre o chão com o pé da frente para retornar.",
+    "avoid": "Evite passos curtos demais ou perder alinhamento do joelho dianteiro.",
+    "easy": "Segure apoio fixo e diminua a amplitude.",
+    "hard": "Pausa na posição baixa ou maior amplitude.",
+    "query": "reverse lunge afundo reverso técnica",
+    "url": null
+  },
+  "Step-up": {
+    "setup": "Escolha um degrau ou plataforma baixa, firme e antiderrapante.",
+    "execution": "Apoie todo o pé no degrau e suba empurrando com a perna de cima; desça devagar.",
+    "avoid": "Não impulsione excessivamente a perna que ficou no chão.",
+    "easy": "Use degrau mais baixo e apoio na parede.",
+    "hard": "Suba num degrau um pouco mais alto apenas quando estiver estável.",
+    "query": "step up subir degrau exercício execução",
+    "url": null
+  },
+  "Ponte glúteo unilateral": {
+    "setup": "Deite de costas, com um pé apoiado e a outra perna elevada.",
+    "execution": "Contraia glúteos e eleve o quadril mantendo a bacia nivelada; retorne devagar.",
+    "avoid": "Não arqueie a lombar nem rode a bacia.",
+    "easy": "Ponte de glúteos com dois pés no chão.",
+    "hard": "Pausa de dois segundos no topo mantendo o quadril alinhado.",
+    "query": "single leg glute bridge technique",
+    "url": null
+  },
+  "Isometria na parede": {
+    "setup": "Apoie as costas numa parede e afaste os pés para a frente.",
+    "execution": "Deslize até uma posição confortável, com joelhos alinhados, e mantenha o tempo proposto.",
+    "avoid": "Evite descer além do tolerável ou deixar os joelhos colapsarem para dentro.",
+    "easy": "Fique mais alto na parede, com menos flexão de joelhos.",
+    "hard": "Desça um pouco mais ou aumente o tempo gradualmente.",
+    "query": "wall sit exercício isometria parede",
+    "url": null
+  },
+  "Elevação joelhos na barra": {
+    "setup": "Pendure-se na barra com pegada firme e ombros ativos.",
+    "execution": "Flexione os quadris e leve os joelhos ao peito sem balançar; abaixe lentamente.",
+    "avoid": "Evite gerar impulso com pernas e lombar.",
+    "easy": "Abdominal reverso deitado no chão.",
+    "hard": "Faça pausa no alto ou estenda gradualmente as pernas.",
+    "query": "hanging knee raise elevação joelhos barra técnica",
+    "url": null
+  }
+};
   const MEALS=[
     ["Café da manhã","3 ovos, pão integral 60 g e banana 100 g",450,25],
     ["Almoço","Arroz 170 g, feijão 150 g, frango 160 g, salada e 10 g de azeite",720,62],
@@ -195,7 +384,7 @@
   let queue=readStorage(PENDING,[]);
   let timers={};
   try{timers=JSON.parse(sessionStorage.getItem(TIMERS)||"{}")||{}}catch{}
-  const ui={tab:"inicio",week:1,train:"Segunda",food:"Segunda",draft:{},restOpen:false,loading:true,saving:false,connected:false};
+  const ui={tab:"inicio",week:1,train:"Segunda",food:"Segunda",draft:{},details:null,loading:true,saving:false,connected:false};
   const fmt=(x,digits=1)=>Number(x).toLocaleString("pt-BR",{maximumFractionDigits:digits});
   const esc=(x)=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const key=(week,day)=>week+":"+day;
@@ -406,7 +595,6 @@
   function timerView(id,title,min,max,log,day,index){
     const t=timerDefault(id,min);
     const options=[...new Set(min===max?[min]:[min,max])];
-    if(id==="rest")options.splice(0,options.length,60,90,120,150);
     const presets=options.map(n=>'<button class="preset '+(n===t.duration?"active":"")+'" '+(t.status==="running"?"disabled":"")+' onclick="App.timer(\''+id+'\',\'preset\','+n+')">'+n+'s</button>').join("");
     const controls=t.status==="running"?
       '<button class="button secondary" onclick="App.timer(\''+id+'\',\'pause\')">Ⅱ Pausar</button>':
@@ -445,21 +633,35 @@
     else if(week>=9)note+=" Controle a descida e faça uma pausa breve.";
     return {target,unit,note,recovery,assessment,previousWeek};
   }
-  function restFloat(){
-    const t=timerDefault("rest",90),visible=ui.restOpen;
-    const status=t.status==="done"?"✓ Concluído":t.status==="running"?"● Contando":t.status==="paused"?"Ⅱ Pausado":"⏱ Descanso";
-    return '<div class="rest-float" aria-label="Timer de descanso flutuante">'+
-      (visible?'<div class="rest-float-panel"><div class="rest-panel-head"><strong>Descanso entre séries</strong><button type="button" class="rest-panel-close" aria-label="Recolher cronômetro" onclick="App.toggleRest()">✕</button></div>'+timerView("rest","Defina o intervalo",90,150,false)+'</div>':'')+
-      '<button type="button" class="rest-toggle '+(t.status==="done"?"done":"")+'" onclick="App.toggleRest()" aria-label="'+(visible?"Fechar":"Abrir")+' cronômetro de descanso" aria-expanded="'+visible+'"><span data-rest-float-status>'+status+'</span><b data-rest-float-time>'+timeStr(t.remaining)+'</b><span>'+(visible?"⌄":"⌃")+'</span></button></div>';
+  function exerciseDetails(day,index){
+    const ex=(EX[day]||[])[index];if(!ex)return "";
+    const guide=GUIDES[ex[0]];if(!guide)return "";
+    const open=ui.details===day+":"+index;
+    const result=['<button type="button" class="howto-btn" aria-expanded="'+open+'" onclick="App.toggleDetails(\''+day+'\','+index+')">',open?'▴ Fechar detalhes':'ⓘ Como fazer / progressões','</button>'].join("");
+    if(!open)return result;
+    const direct=!!guide.url;
+    const url=direct?guide.url:"https://www.youtube.com/results?search_query="+encodeURIComponent(guide.query+" exercício técnica progressão");
+    const label=direct?"▶ Abrir vídeo ou guia demonstrativo":"▶ Buscar vídeos demonstrativos";
+    return result+'<div class="howto-panel" id="guide-'+day+'-'+index+'">'+
+      '<div class="howto-head"><strong>Aprenda: '+esc(ex[0])+'</strong><span class="tag">Execução segura</span></div>'+
+      '<p><b>Posição inicial</b>'+esc(guide.setup)+'</p>'+
+      '<p><b>Como executar</b>'+esc(guide.execution)+'</p>'+
+      '<p><b>Evite</b>'+esc(guide.avoid)+'</p>'+
+      '<div class="howto-levels"><div><small>MAIS FÁCIL</small><p>'+esc(guide.easy)+'</p></div><div><small>MAIS DIFÍCIL</small><p>'+esc(guide.hard)+'</p></div></div>'+
+      '<a class="howto-video" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+label+' ↗</a>'+
+      '<p class="howto-disclaimer">'+(direct?"Material externo de referência; confira se a demonstração corresponde à variação indicada.":"Abre uma pesquisa específica no YouTube; escolha uma demonstração clara e compatível com seu nível.")+'</p>'+
+      '</div>';
   }
-  function toggleRest(){ui.restOpen=!ui.restOpen;render()}
+  function toggleDetails(day,index){
+    if(!Object.prototype.hasOwnProperty.call(EX,day)||!Number.isInteger(index)||index<0||index>=EX[day].length)return;
+    const key=day+":"+index;ui.details=ui.details===key?null:key;render();
+  }
   function training(){
     const w=ui.week,phase=WEEK[w-1],day=ui.train,exercises=EX[day]||[];
     let details='<div class="inline" style="margin:16px 0"><div><div class="eyebrow">'+phase[0]+'</div><h2>'+(day==="Quarta"?"Recuperação ativa":(day==="Segunda"||day==="Quinta"?"Treino superior":"Treino inferior"))+'</h2><p class="helper">'+phase[3]+'</p></div><span class="tag '+(checked(w,day)==="Concluído"?"green":checked(w,day)==="Parcial"?"amber":"")+'">'+statusText(checked(w,day))+'</span></div>';
     if(day==="Quarta"){
       details+=card('<div class="eyebrow">Dia leve</div><h2 style="margin:8px 0">Caminhada e mobilidade</h2><p class="lead">'+phase[2]+' minutos de caminhada em ritmo confortável, mais 10 minutos de mobilidade de ombros, quadris e tornozelos.</p><button class="button" onclick="App.finishRecovery()">✓ Marcar recuperação concluída</button>');
     }else{
-      // The compact rest timer is rendered separately as a floating control.
       for(let i=0;i<exercises.length;i++){
         const ex=exercises[i],count=Math.min(phase[1],ex[2]),sets=draftSets(day,i),goal=weeklyTarget(w,day,i,ex);
         const entered=sets.slice(0,count).filter(v=>v!==null&&v!==""&&Number(v)>0).length;
@@ -476,7 +678,7 @@
           '<div class="ex-details"><div class="eyebrow">'+esc(ex[1])+'</div><h3>'+esc(ex[0])+'</h3><small>'+count+' séries × '+ex[3]+'–'+ex[4]+' '+(ex[7]?"segundos":"repetições")+'</small>'+
           '<div class="micro-goal">Alvo sugerido na semana '+w+': '+goal.target+' '+goal.unit+' por série</div><div class="micro-goal-note">'+esc(goal.note)+'</div></div></div>'+
           '<div class="set-grid">'+inputs+'</div><div class="ex-footer"><span class="tag '+tone+'">'+tip+'</span><span class="helper">Alternativa: '+esc(ex[5])+'</span></div>'+
-          '<p class="helper" style="margin:10px 0 0">'+esc(ex[6])+'</p>'+
+          '<p class="helper" style="margin:10px 0 0">'+esc(ex[6])+'</p>'+exerciseDetails(day,i)+
           (ex[7]?timerView("ex-"+w+"-"+day+"-"+i,"Cronômetro da série",ex[3],ex[4],true,day,i):""),
           'exercise');
       }
@@ -568,8 +770,7 @@
       '<div class="side-status" id="side-sync"></div></div></div>'+
       '<main><div class="content"><div class="topline"><div class="mobile-logo"><span>↗</span> BETTER<span>ME.</span></div>'+
       '<div class="tiny">Sua jornada, no seu ritmo.</div><div class="top-actions"><button class="icon-btn" title="Atualizar dados" onclick="App.refresh()">↻</button><span class="pill" id="sync-status"></span></div></div>'+tabContent+'</div></main>'+
-      '<div class="mobile-nav">'+nav.map(n=>navButton(n,false)).join("")+'</div>'+
-      (ui.tab==="treino"&&ui.train!=="Quarta"?restFloat():"");
+      '<div class="mobile-nav">'+nav.map(n=>navButton(n,false)).join("")+'</div>';
     document.getElementById("root").innerHTML=main;
     updateConnection();timerTick();
   }
@@ -663,12 +864,6 @@
           if(document.querySelector('[data-clock="'+id+'"]'))setTimeout(render,0);
         }
       }
-      if(id==="rest"){
-        const fabTime=document.querySelector('[data-rest-float-time]');
-        const fabStatus=document.querySelector('[data-rest-float-status]');
-        if(fabTime)fabTime.textContent=timeStr(t.remaining);
-        if(fabStatus)fabStatus.textContent=t.status==="done"?"✓ Concluído":t.status==="running"?"● Contando":t.status==="paused"?"Ⅱ Pausado":"⏱ Descanso";
-      }
       const time=document.querySelector('[data-time="'+id+'"]');
       const status=document.querySelector('[data-status="'+id+'"]');
       const bar=document.querySelector('[data-progress="'+id+'"]');
@@ -679,7 +874,7 @@
     if(changed)persistTimers();
   }
   function timer(id,cmd,num){
-    const t=timerDefault(id,id==="rest"?90:30);
+    const t=timerDefault(id,30);
     if(cmd==="preset"){
       if(t.status!=="running"&&Number.isFinite(num)&&num>=5&&num<=180){
         t.duration=num;t.remaining=num;t.deadline=0;t.status="idle";
@@ -708,7 +903,7 @@
   window.App={
     open:navTo,week:changeWeek,jumpWeek,trainDay:setTrain,foodDay:setFood,setRep:setReps,
     saveWorkout,finishRecovery,saveNutrition,toggleMeal,saveWeight,saveMeasure,saveStart,
-    timer,toggleRest,recordTimed,refresh
+    timer,toggleDetails,recordTimed,refresh
   };
   setInterval(timerTick,250);
   document.addEventListener("visibilitychange",timerTick);
